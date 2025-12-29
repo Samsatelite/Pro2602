@@ -13,41 +13,13 @@ interface NewsItem {
   region?: string;
 }
 
-const newsData: NewsItem[] = [
-  {
-    id: "1",
-    title: "Grid Stabilization Successful",
-    description: "TCN reports successful restoration of Shiroro-Kaduna 330kV line after maintenance",
-    type: "update",
-    timestamp: "30 min ago",
-    region: "North Central",
-  },
-  {
-    id: "2",
-    title: "Scheduled Maintenance Notice",
-    description: "Planned outage in parts of Lekki Phase 1 on Dec 30, 10AM-2PM for infrastructure upgrade",
-    type: "info",
-    timestamp: "1 hour ago",
-    region: "Lagos",
-  },
-  {
-    id: "3",
-    title: "Generation Drops Below 4,000MW",
-    description: "National grid generation fell to 3,890MW due to gas constraints at Egbin Power Plant",
-    type: "alert",
-    timestamp: "2 hours ago",
-  },
-  {
-    id: "4",
-    title: "New Solar Farm Connected",
-    description: "20MW solar facility in Katsina successfully connected to the national grid",
-    type: "update",
-    timestamp: "4 hours ago",
-    region: "North West",
-  },
-];
+interface GridNewsProps {
+  news?: NewsItem[];
+}
 
-export function GridNews() {
+export function GridNews({ news = [] }: GridNewsProps) {
+  const hasNews = news.length > 0;
+
   const getTypeConfig = (type: NewsItem["type"]) => {
     switch (type) {
       case "alert":
@@ -83,48 +55,56 @@ export function GridNews() {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="h-[280px] px-6 pb-6">
-          <div className="space-y-3">
-            {newsData.map((news, index) => {
-              const config = getTypeConfig(news.type);
-              const Icon = config.icon;
+        {hasNews ? (
+          <ScrollArea className="h-[280px] px-6 pb-6">
+            <div className="space-y-3">
+              {news.map((item, index) => {
+                const config = getTypeConfig(item.type);
+                const Icon = config.icon;
 
-              return (
-                <div
-                  key={news.id}
-                  className={cn(
-                    "p-3 rounded-lg border transition-all duration-200 hover:bg-secondary/30 animate-slide-in-right cursor-pointer",
-                    config.bg,
-                    config.border
-                  )}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={cn("mt-0.5 p-1.5 rounded-lg", config.bg)}>
-                      <Icon className={cn("w-3.5 h-3.5", config.color)} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm">{news.title}</span>
-                        {news.region && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                            {news.region}
-                          </Badge>
-                        )}
+                return (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      "p-3 rounded-lg border transition-all duration-200 hover:bg-secondary/30 animate-slide-in-right cursor-pointer",
+                      config.bg,
+                      config.border
+                    )}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={cn("mt-0.5 p-1.5 rounded-lg", config.bg)}>
+                        <Icon className={cn("w-3.5 h-3.5", config.color)} />
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {news.description}
-                      </p>
-                      <span className="text-[10px] text-muted-foreground mt-1.5 block">
-                        {news.timestamp}
-                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-sm">{item.title}</span>
+                          {item.region && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              {item.region}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {item.description}
+                        </p>
+                        <span className="text-[10px] text-muted-foreground mt-1.5 block">
+                          {item.timestamp}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          </ScrollArea>
+        ) : (
+          <div className="h-[280px] flex flex-col items-center justify-center text-muted-foreground px-6">
+            <Newspaper className="w-12 h-12 mb-3 opacity-30" />
+            <p className="text-sm text-center">No news or alerts</p>
+            <p className="text-xs mt-1 text-center">Grid updates will appear here</p>
           </div>
-        </ScrollArea>
+        )}
       </CardContent>
     </Card>
   );
