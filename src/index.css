@@ -45,9 +45,9 @@
 
     --radius: 0.75rem;
 
-    --glow-primary: 0 0 30px hsl(142 76% 45% / 0.3);
-    --glow-warning: 0 0 30px hsl(45 100% 50% / 0.3);
-    --glow-critical: 0 0 30px hsl(0 72% 51% / 0.3);
+    --glow-primary: 0 0 12px hsl(142 76% 45% / 0.15);
+    --glow-warning: 0 0 12px hsl(45 100% 50% / 0.15);
+    --glow-critical: 0 0 12px hsl(0 72% 51% / 0.15);
 
     --sidebar-background: 220 18% 8%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -160,10 +160,10 @@
 
 @keyframes glow {
   from {
-    filter: drop-shadow(0 0 5px hsl(var(--primary) / 0.5));
+    filter: drop-shadow(0 0 3px hsl(var(--primary) / 0.3));
   }
   to {
-    filter: drop-shadow(0 0 20px hsl(var(--primary) / 0.8));
+    filter: drop-shadow(0 0 8px hsl(var(--primary) / 0.4));
   }
 }
 
