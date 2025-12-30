@@ -8,23 +8,21 @@ import { GridNews } from "@/components/GridNews";
 import { Zap, Activity, Gauge, BarChart3, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useGridData } from "@/hooks/useGridData";
+import { usePowerReports } from "@/hooks/usePowerReports";
+import { useDiscos } from "@/hooks/useDiscos";
+import { useGridNews } from "@/hooks/useGridNews";
 
 const Index = () => {
+  const { gridData, loading: gridLoading } = useGridData();
+  const { reports, loading: reportsLoading } = usePowerReports();
+  const { discos, loading: discosLoading } = useDiscos();
+  const { news, loading: newsLoading } = useGridNews();
+
   const handleShare = () => {
     toast.success("Sharing options coming soon!", {
       description: "Share grid status on WhatsApp, Twitter, and more",
     });
-  };
-
-  // Real-time data would come from your backend/database
-  // Using empty/null values to show empty states
-  const gridData = {
-    generation: null as number | null,
-    frequency: null as number | null,
-    load: null as number | null,
-    reports: null as number | null,
-    status: null as "stable" | "stressed" | "critical" | null,
-    lastUpdated: null as string | null,
   };
 
   return (
@@ -68,7 +66,7 @@ const Index = () => {
             value={gridData.generation}
             unit="MW"
             icon={Zap}
-            status="stable"
+            status={gridData.status || "stable"}
             delay={0}
           />
           <GridStatusCard
@@ -76,7 +74,7 @@ const Index = () => {
             value={gridData.frequency}
             unit="Hz"
             icon={Activity}
-            status="stable"
+            status={gridData.status || "stable"}
             delay={100}
           />
           <GridStatusCard
@@ -84,7 +82,7 @@ const Index = () => {
             value={gridData.load}
             unit="%"
             icon={Gauge}
-            status="stable"
+            status={gridData.status || "stable"}
             delay={200}
           />
           <GridStatusCard
@@ -100,26 +98,29 @@ const Index = () => {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Column - Map */}
           <div className="lg:col-span-2">
-            <NigeriaMap regions={[]} />
+            <NigeriaMap reports={reports} />
           </div>
 
           {/* Right Column */}
           <div className="space-y-6">
-            <RecentReports reports={[]} />
+            <RecentReports reports={reports} loading={reportsLoading} />
           </div>
         </div>
 
         {/* Bottom Grid */}
         <div className="grid md:grid-cols-2 gap-6">
-          <DiscoBreakdown discos={[]} />
-          <GridNews news={[]} />
+          <DiscoBreakdown discos={discos} loading={discosLoading} />
+          <GridNews news={news} loading={newsLoading} />
         </div>
 
         {/* Footer */}
         <footer className="border-t border-border/50 pt-6 mt-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <p>
-              Waiting for data from TCN, NBET, and community reports
+              {reports.length > 0 
+                ? `${reports.length} community reports • Data from TCN, NBET`
+                : "Waiting for data from TCN, NBET, and community reports"
+              }
             </p>
             <div className="flex items-center gap-4">
               <a href="#" className="hover:text-foreground transition-colors">

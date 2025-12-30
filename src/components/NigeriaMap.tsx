@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, MapPin, Zap, ZapOff, Info, Loader2, Settings } from "lucide-react";
+import { MapPin, Zap, ZapOff, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RadarAutocomplete } from "./RadarAutocomplete";
+import { PowerReport } from "@/hooks/usePowerReports";
 
 interface RegionData {
   id: string;
@@ -16,84 +17,88 @@ interface RegionData {
   coordinates?: { lat: number; lng: number };
 }
 
-interface MapboxFeature {
-  id: string;
-  place_name: string;
-  center: [number, number];
-  place_type: string[];
-}
-
 interface NigeriaMapProps {
-  regions?: RegionData[];
+  reports?: PowerReport[];
 }
 
-const MAPBOX_TOKEN_KEY = "mapbox_public_token";
-
-export function NigeriaMap({ regions = [] }: NigeriaMapProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+export function NigeriaMap({ reports = [] }: NigeriaMapProps) {
   const [selectedRegion, setSelectedRegion] = useState<RegionData | null>(null);
-  const [searchResults, setSearchResults] = useState<MapboxFeature[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [mapboxToken, setMapboxToken] = useState(() => 
-    localStorage.getItem(MAPBOX_TOKEN_KEY) || ""
-  );
-  const [showTokenInput, setShowTokenInput] = useState(!mapboxToken);
-  const [tempToken, setTempToken] = useState("");
 
-  const saveToken = () => {
-    if (tempToken.trim()) {
-      localStorage.setItem(MAPBOX_TOKEN_KEY, tempToken.trim());
-      setMapboxToken(tempToken.trim());
-      setShowTokenInput(false);
-    }
-  };
+  // Aggregate reports by region/area
+  const regions = useMemo(() => {
+    if (reports.length === 0) return [];
 
-  const searchMapbox = useCallback(async (query: string) => {
-    if (!query.trim() || !mapboxToken) return;
-    
-    setIsSearching(true);
-    try {
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?country=NG&access_token=${mapboxToken}&limit=5`
-      );
-      const data = await response.json();
+    const regionMap = new Map<string, {
+      available: number;
+      unavailable: number;
+      lastUpdate: string;
+      lat: number;
+      lng: number;
+    }>();
+
+    reports.forEach((report) => {
+      const key = report.region || report.address || `${report.latitude.toFixed(2)},${report.longitude.toFixed(2)}`;
+      const existing = regionMap.get(key);
       
-      if (data.features) {
-        setSearchResults(data.features);
-      }
-    } catch (error) {
-      console.error("Mapbox search error:", error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [mapboxToken]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchQuery.length >= 2) {
-        searchMapbox(searchQuery);
+      if (existing) {
+        if (report.status === "available") existing.available++;
+        else existing.unavailable++;
+        if (new Date(report.created_at) > new Date(existing.lastUpdate)) {
+          existing.lastUpdate = report.created_at;
+        }
       } else {
-        setSearchResults([]);
+        regionMap.set(key, {
+          available: report.status === "available" ? 1 : 0,
+          unavailable: report.status === "unavailable" ? 1 : 0,
+          lastUpdate: report.created_at,
+          lat: Number(report.latitude),
+          lng: Number(report.longitude),
+        });
       }
-    }, 300);
+    });
 
-    return () => clearTimeout(timer);
-  }, [searchQuery, searchMapbox]);
+    return Array.from(regionMap.entries()).map(([name, data]) => ({
+      id: name,
+      name: name.split(",")[0],
+      status: data.available > data.unavailable ? "available" as const : 
+              data.unavailable > data.available ? "unavailable" as const : "no-data" as const,
+      confidence: Math.round((Math.max(data.available, data.unavailable) / (data.available + data.unavailable)) * 100),
+      lastUpdate: formatTimeAgo(data.lastUpdate),
+      reportCount: data.available + data.unavailable,
+      coordinates: { lat: data.lat, lng: data.lng },
+    }));
+  }, [reports]);
 
-  const handleSelectSearchResult = (feature: MapboxFeature) => {
+  const handleLocationSelect = (address: {
+    formattedAddress: string;
+    placeLabel: string;
+    latitude: number;
+    longitude: number;
+  }) => {
+    // Find nearby reports or show as no-data
+    const nearby = reports.filter((r) => {
+      const dist = Math.sqrt(
+        Math.pow(Number(r.latitude) - address.latitude, 2) +
+        Math.pow(Number(r.longitude) - address.longitude, 2)
+      );
+      return dist < 0.1; // Roughly 10km radius
+    });
+
+    const available = nearby.filter((r) => r.status === "available").length;
+    const unavailable = nearby.filter((r) => r.status === "unavailable").length;
+
     const newRegion: RegionData = {
-      id: feature.id,
-      name: feature.place_name.split(",")[0],
-      status: "no-data",
-      confidence: 0,
-      lastUpdate: "No reports",
-      reportCount: 0,
-      coordinates: { lat: feature.center[1], lng: feature.center[0] },
+      id: `search-${Date.now()}`,
+      name: address.placeLabel || address.formattedAddress.split(",")[0],
+      status: nearby.length === 0 ? "no-data" : 
+              available > unavailable ? "available" : "unavailable",
+      confidence: nearby.length === 0 ? 0 : 
+                  Math.round((Math.max(available, unavailable) / nearby.length) * 100),
+      lastUpdate: nearby.length === 0 ? "No reports" : "Recent",
+      reportCount: nearby.length,
+      coordinates: { lat: address.latitude, lng: address.longitude },
     };
     setSelectedRegion(newRegion);
-    setSearchQuery(feature.place_name.split(",")[0]);
-    setSearchResults([]);
   };
 
   const statusCounts = {
@@ -127,90 +132,17 @@ export function NigeriaMap({ regions = [] }: NigeriaMapProps) {
                 <div className="w-2 h-2 rounded-full bg-critical" />
                 {statusCounts.unavailable} Outage
               </Badge>
-              <Badge variant="outline" className="gap-1">
-                <div className="w-2 h-2 rounded-full bg-muted-foreground" />
-                {statusCounts.noData} No Data
-              </Badge>
             </div>
           )}
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Mapbox Token Setup */}
-        {showTokenInput && (
-          <div className="p-4 rounded-lg bg-secondary/50 border border-border/50 space-y-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Settings className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Enter your Mapbox public token for address search</span>
-            </div>
-            <div className="flex gap-2">
-              <Input
-                placeholder="pk.eyJ1..."
-                value={tempToken}
-                onChange={(e) => setTempToken(e.target.value)}
-                className="bg-secondary/50 border-border/50"
-              />
-              <Button onClick={saveToken} disabled={!tempToken.trim()}>
-                Save
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Get your free token at{" "}
-              <a href="https://mapbox.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                mapbox.com
-              </a>
-            </p>
-          </div>
-        )}
-
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder={mapboxToken ? "Search address, city, or place..." : "Enter Mapbox token to enable search"}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-secondary/50 border-border/50"
-            disabled={!mapboxToken}
-          />
-          {isSearching && (
-            <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
-          )}
-          {!showTokenInput && mapboxToken && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 px-2 text-xs"
-              onClick={() => setShowTokenInput(true)}
-            >
-              <Settings className="w-3 h-3" />
-            </Button>
-          )}
-        </div>
-
-        {/* Search Results Dropdown */}
-        {searchResults.length > 0 && (
-          <div className="absolute z-10 w-full max-w-[calc(100%-3rem)] bg-card border border-border rounded-lg shadow-lg overflow-hidden">
-            {searchResults.map((feature) => (
-              <button
-                key={feature.id}
-                onClick={() => handleSelectSearchResult(feature)}
-                className="w-full px-4 py-3 text-left hover:bg-secondary/50 transition-colors border-b border-border/50 last:border-0"
-              >
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-primary shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium">{feature.place_name.split(",")[0]}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {feature.place_name}
-                    </p>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Radar.com Autocomplete Search */}
+        <RadarAutocomplete
+          placeholder="Search address, city, or place in Nigeria..."
+          onSelect={handleLocationSelect}
+        />
 
         {/* Map Visualization */}
         <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-secondary/30 border border-border/50">
@@ -235,20 +167,15 @@ export function NigeriaMap({ regions = [] }: NigeriaMapProps) {
               className="transition-all duration-300"
             />
             
-            {/* Region dots */}
-            {regions.map((region, index) => {
-              const positions: Record<string, { x: number; y: number }> = {
-                lagos: { x: 120, y: 220 },
-                abuja: { x: 200, y: 150 },
-                kano: { x: 220, y: 70 },
-                rivers: { x: 160, y: 240 },
-                oyo: { x: 140, y: 180 },
-                kaduna: { x: 200, y: 100 },
-                enugu: { x: 200, y: 200 },
-                delta: { x: 140, y: 230 },
-              };
-              
-              const pos = positions[region.id] || { x: 200, y: 150 };
+            {/* Region dots from real reports */}
+            {regions.slice(0, 20).map((region, index) => {
+              // Map coordinates to SVG viewbox (Nigeria roughly 4-14°N, 3-15°E)
+              const x = region.coordinates 
+                ? 80 + ((region.coordinates.lng - 3) / 12) * 260 
+                : 200;
+              const y = region.coordinates 
+                ? 250 - ((region.coordinates.lat - 4) / 10) * 200 
+                : 150;
               const color = region.status === "available" 
                 ? "hsl(var(--success))" 
                 : region.status === "unavailable" 
@@ -258,20 +185,12 @@ export function NigeriaMap({ regions = [] }: NigeriaMapProps) {
               return (
                 <g key={region.id} className="cursor-pointer" onClick={() => setSelectedRegion(region)}>
                   <circle
-                    cx={pos.x}
-                    cy={pos.y}
-                    r="8"
+                    cx={Math.max(90, Math.min(310, x))}
+                    cy={Math.max(60, Math.min(240, y))}
+                    r="6"
                     fill={color}
-                    className="transition-all duration-200 hover:r-10"
+                    className="transition-all duration-200"
                   />
-                  <text
-                    x={pos.x}
-                    y={pos.y + 22}
-                    textAnchor="middle"
-                    className="text-[10px] fill-foreground font-medium"
-                  >
-                    {region.name}
-                  </text>
                 </g>
               );
             })}
@@ -366,13 +285,13 @@ export function NigeriaMap({ regions = [] }: NigeriaMapProps) {
                 )}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">{region.name}</span>
+                  <span className="font-medium text-sm truncate">{region.name}</span>
                   {region.status === "available" ? (
-                    <Zap className="w-3.5 h-3.5 text-success" />
+                    <Zap className="w-3.5 h-3.5 text-success shrink-0" />
                   ) : region.status === "unavailable" ? (
-                    <ZapOff className="w-3.5 h-3.5 text-critical" />
+                    <ZapOff className="w-3.5 h-3.5 text-critical shrink-0" />
                   ) : (
-                    <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                    <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -385,4 +304,18 @@ export function NigeriaMap({ regions = [] }: NigeriaMapProps) {
       </CardContent>
     </Card>
   );
+}
+
+function formatTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
 }

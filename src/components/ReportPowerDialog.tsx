@@ -9,55 +9,104 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Zap, ZapOff, MapPin, Clock, Send, CheckCircle } from "lucide-react";
+import { Zap, ZapOff, MapPin, Clock, Send, CheckCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { RadarAutocomplete } from "./RadarAutocomplete";
+import { usePowerReports } from "@/hooks/usePowerReports";
 
 interface ReportPowerDialogProps {
   children: React.ReactNode;
 }
 
+interface SelectedLocation {
+  address: string;
+  region: string;
+  latitude: number;
+  longitude: number;
+}
+
 export function ReportPowerDialog({ children }: ReportPowerDialogProps) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<"available" | "unavailable" | null>(null);
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState<SelectedLocation | null>(null);
   const [duration, setDuration] = useState([0]);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { submitReport } = usePowerReports();
 
-  const handleSubmit = () => {
-    if (!status || !location) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-    
-    setSubmitted(true);
-    toast.success("Report submitted successfully!", {
-      description: "Thank you for contributing to the community",
+  const handleLocationSelect = (address: {
+    formattedAddress: string;
+    city: string;
+    state: string;
+    latitude: number;
+    longitude: number;
+  }) => {
+    setLocation({
+      address: address.formattedAddress,
+      region: `${address.city}, ${address.state}`,
+      latitude: address.latitude,
+      longitude: address.longitude,
     });
-    
-    setTimeout(() => {
-      setOpen(false);
-      setStatus(null);
-      setLocation("");
-      setDuration([0]);
-      setSubmitted(false);
-    }, 2000);
   };
 
   const handleGetLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setLocation(`${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`);
+          setLocation({
+            address: `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`,
+            region: "Current Location",
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
           toast.success("Location detected");
         },
         () => {
           toast.error("Could not get your location");
         }
       );
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!status || !location) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      await submitReport({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        address: location.address,
+        region: location.region,
+        status,
+        estimated_duration: status === "unavailable" && duration[0] > 0 
+          ? `${duration[0]} hour${duration[0] > 1 ? "s" : ""}` 
+          : undefined,
+      });
+
+      setSubmitted(true);
+      toast.success("Report submitted successfully!", {
+        description: "Thank you for contributing to the community",
+      });
+      
+      setTimeout(() => {
+        setOpen(false);
+        setStatus(null);
+        setLocation(null);
+        setDuration([0]);
+        setSubmitted(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Error submitting report:", error);
+      toast.error("Failed to submit report. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -87,7 +136,7 @@ export function ReportPowerDialog({ children }: ReportPowerDialogProps) {
                     className={cn(
                       "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200",
                       status === "available"
-                        ? "border-success bg-success/10 shadow-lg shadow-success/20"
+                        ? "border-success bg-success/10"
                         : "border-border hover:border-success/50 hover:bg-success/5"
                     )}
                   >
@@ -113,7 +162,7 @@ export function ReportPowerDialog({ children }: ReportPowerDialogProps) {
                     className={cn(
                       "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200",
                       status === "unavailable"
-                        ? "border-critical bg-critical/10 shadow-lg shadow-critical/20"
+                        ? "border-critical bg-critical/10"
                         : "border-border hover:border-critical/50 hover:bg-critical/5"
                     )}
                   >
@@ -140,11 +189,11 @@ export function ReportPowerDialog({ children }: ReportPowerDialogProps) {
               <div className="space-y-3">
                 <Label>Your Location *</Label>
                 <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter your area or coordinates"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="bg-secondary/50"
+                  <RadarAutocomplete
+                    placeholder="Search your address..."
+                    onSelect={handleLocationSelect}
+                    value={location?.address}
+                    className="flex-1"
                   />
                   <Button
                     type="button"
@@ -156,6 +205,11 @@ export function ReportPowerDialog({ children }: ReportPowerDialogProps) {
                     <MapPin className="w-4 h-4" />
                   </Button>
                 </div>
+                {location && (
+                  <p className="text-xs text-muted-foreground">
+                    📍 {location.region}
+                  </p>
+                )}
               </div>
 
               {/* Outage Duration (only show if unavailable) */}
@@ -189,10 +243,14 @@ export function ReportPowerDialog({ children }: ReportPowerDialogProps) {
                 onClick={handleSubmit}
                 className="w-full"
                 variant="glow"
-                disabled={!status || !location}
+                disabled={!status || !location || isSubmitting}
               >
-                <Send className="w-4 h-4 mr-2" />
-                Submit Report
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4 mr-2" />
+                )}
+                {isSubmitting ? "Submitting..." : "Submit Report"}
               </Button>
 
               <p className="text-xs text-muted-foreground text-center">
