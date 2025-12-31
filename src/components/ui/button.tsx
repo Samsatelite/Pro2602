@@ -9,16 +9,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25 hover:shadow-primary/40",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg shadow-destructive/25",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline: "border border-border bg-transparent hover:bg-secondary hover:text-secondary-foreground",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-secondary hover:text-secondary-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        glow: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/40 hover:shadow-primary/60",
-        success: "bg-success text-success-foreground hover:bg-success/90 shadow-lg shadow-success/25",
-        warning: "bg-warning text-warning-foreground hover:bg-warning/90 shadow-lg shadow-warning/25",
-        critical: "bg-critical text-critical-foreground hover:bg-critical/90 shadow-lg shadow-critical/25",
+        glow: "bg-primary text-primary-foreground hover:bg-primary/90",
+        success: "bg-success text-success-foreground hover:bg-success/90",
+        warning: "bg-warning text-warning-foreground hover:bg-warning/90",
+        critical: "bg-critical text-critical-foreground hover:bg-critical/90",
       },
       size: {
         default: "h-10 px-4 py-2",

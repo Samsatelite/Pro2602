@@ -85,7 +85,7 @@ export function ReportPowerDialog({ children }: ReportPowerDialogProps) {
         address: location.address,
         region: location.region,
         status,
-        estimated_duration: status === "unavailable" && duration[0] > 0 
+        estimated_duration: duration[0] > 0 
           ? `${duration[0]} hour${duration[0] > 1 ? "s" : ""}` 
           : undefined,
       });
@@ -212,12 +212,12 @@ export function ReportPowerDialog({ children }: ReportPowerDialogProps) {
                 )}
               </div>
 
-              {/* Outage Duration (only show if unavailable) */}
-              {status === "unavailable" && (
+              {/* Duration (for both available and unavailable) */}
+              {status && (
                 <div className="space-y-3 animate-fade-in">
                   <Label className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    Estimated Outage Duration
+                    {status === "available" ? "Estimated Availability Duration" : "Estimated Outage Duration"}
                   </Label>
                   <div className="space-y-2">
                     <Slider

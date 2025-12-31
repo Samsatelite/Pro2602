@@ -1,20 +1,43 @@
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { GridStatusCard } from "@/components/GridStatusCard";
 import { GridHealthIndicator } from "@/components/GridHealthIndicator";
 import { NigeriaMap } from "@/components/NigeriaMap";
 import { RecentReports } from "@/components/RecentReports";
 import { GridNews } from "@/components/GridNews";
-import { Zap, Activity, Gauge, BarChart3, Share2 } from "lucide-react";
+import { Zap, Activity, Gauge, BarChart3, Share2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useGridData } from "@/hooks/useGridData";
 import { usePowerReports } from "@/hooks/usePowerReports";
 import { useGridNews } from "@/hooks/useGridNews";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
-  const { gridData, loading: gridLoading } = useGridData();
+  const { gridData, loading: gridLoading, refetch: refetchGrid } = useGridData();
   const { reports, loading: reportsLoading } = usePowerReports();
   const { news, loading: newsLoading } = useGridNews();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshGrid = async () => {
+    setIsRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-grid-data');
+      if (error) throw error;
+      
+      if (data?.success) {
+        toast.success("Grid data refreshed from power.gov.ng");
+        refetchGrid();
+      } else {
+        throw new Error(data?.error || "Failed to fetch data");
+      }
+    } catch (error) {
+      console.error("Error refreshing grid:", error);
+      toast.error("Failed to refresh grid data");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleShare = () => {
     toast.success("Sharing options coming soon!", {
@@ -37,13 +60,22 @@ const Index = () => {
               Real-time national grid status and community power reports
             </p>
           </div>
-          <Button variant="outline" onClick={handleShare} className="sm:w-auto w-full">
-            <Share2 className="w-4 h-4 mr-2" />
-            Share Status
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleRefreshGrid} 
+              disabled={isRefreshing}
+              className="sm:w-auto"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+            <Button variant="outline" onClick={handleShare} className="sm:w-auto">
+              <Share2 className="w-4 h-4 mr-2" />
+              Share
+            </Button>
+          </div>
         </div>
-
-        {/* Grid Health Status */}
         <GridHealthIndicator 
           status={gridData.status} 
           lastUpdated={gridData.lastUpdated} 
