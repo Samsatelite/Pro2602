@@ -3,24 +3,26 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Newspaper, AlertTriangle, Info, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface NewsItem {
-  id: string;
-  title: string;
-  description: string;
-  type: "alert" | "info" | "update";
-  timestamp: string;
-  region?: string;
-}
+import { GridNewsItem } from "@/hooks/useGridNews";
+import { formatDistanceToNow } from "date-fns";
 
 interface GridNewsProps {
-  news?: NewsItem[];
+  news?: GridNewsItem[];
+  loading?: boolean;
 }
 
-export function GridNews({ news = [] }: GridNewsProps) {
+export function GridNews({ news = [], loading = false }: GridNewsProps) {
   const hasNews = news.length > 0;
 
-  const getTypeConfig = (type: NewsItem["type"]) => {
+  const formatTimestamp = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    } catch {
+      return "Just now";
+    }
+  };
+
+  const getTypeConfig = (type: GridNewsItem["type"]) => {
     switch (type) {
       case "alert":
         return {
@@ -43,11 +45,18 @@ export function GridNews({ news = [] }: GridNewsProps) {
           bg: "bg-success/10",
           border: "border-success/30",
         };
+      default:
+        return {
+          icon: Info,
+          color: "text-muted-foreground",
+          bg: "bg-muted/10",
+          border: "border-border",
+        };
     }
   };
 
   return (
-    <Card variant="glass" className="animate-fade-in" style={{ animationDelay: "500ms" }}>
+    <Card className="animate-fade-in border-border" style={{ animationDelay: "500ms" }}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Newspaper className="w-4 h-4 text-primary" />
@@ -55,7 +64,11 @@ export function GridNews({ news = [] }: GridNewsProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        {hasNews ? (
+        {loading ? (
+          <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+            <p className="text-sm">Loading news...</p>
+          </div>
+        ) : hasNews ? (
           <ScrollArea className="h-[280px] px-6 pb-6">
             <div className="space-y-3">
               {news.map((item, index) => {
@@ -66,7 +79,7 @@ export function GridNews({ news = [] }: GridNewsProps) {
                   <div
                     key={item.id}
                     className={cn(
-                      "p-3 rounded-lg border transition-all duration-200 hover:bg-secondary/30 animate-slide-in-right cursor-pointer",
+                      "p-3 rounded-lg border transition-all duration-200 hover:bg-muted/50 animate-slide-in-right cursor-pointer",
                       config.bg,
                       config.border
                     )}
@@ -89,7 +102,7 @@ export function GridNews({ news = [] }: GridNewsProps) {
                           {item.description}
                         </p>
                         <span className="text-[10px] text-muted-foreground mt-1.5 block">
-                          {item.timestamp}
+                          {formatTimestamp(item.created_at)}
                         </span>
                       </div>
                     </div>

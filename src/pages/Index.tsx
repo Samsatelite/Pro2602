@@ -3,20 +3,17 @@ import { GridStatusCard } from "@/components/GridStatusCard";
 import { GridHealthIndicator } from "@/components/GridHealthIndicator";
 import { NigeriaMap } from "@/components/NigeriaMap";
 import { RecentReports } from "@/components/RecentReports";
-import { DiscoBreakdown } from "@/components/DiscoBreakdown";
 import { GridNews } from "@/components/GridNews";
 import { Zap, Activity, Gauge, BarChart3, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useGridData } from "@/hooks/useGridData";
 import { usePowerReports } from "@/hooks/usePowerReports";
-import { useDiscos } from "@/hooks/useDiscos";
 import { useGridNews } from "@/hooks/useGridNews";
 
 const Index = () => {
   const { gridData, loading: gridLoading } = useGridData();
   const { reports, loading: reportsLoading } = usePowerReports();
-  const { discos, loading: discosLoading } = useDiscos();
   const { news, loading: newsLoading } = useGridNews();
 
   const handleShare = () => {
@@ -27,13 +24,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Background Effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/3 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-primary/3 rounded-full blur-3xl" />
-        <div className="absolute inset-0 grid-pattern opacity-20" />
-      </div>
-
       <Header />
 
       <main className="relative container px-4 md:px-6 py-6 space-y-6">
@@ -87,7 +77,7 @@ const Index = () => {
           />
           <GridStatusCard
             title="Active Reports"
-            value={gridData.reports}
+            value={reports.length.toString()}
             icon={BarChart3}
             status="stable"
             delay={300}
@@ -107,19 +97,18 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Bottom Grid */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <DiscoBreakdown discos={discos} loading={discosLoading} />
+        {/* Bottom Grid - News only */}
+        <div>
           <GridNews news={news} loading={newsLoading} />
         </div>
 
         {/* Footer */}
-        <footer className="border-t border-border/50 pt-6 mt-8">
+        <footer className="border-t border-border pt-6 mt-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <p>
               {reports.length > 0 
-                ? `${reports.length} community reports • Data from TCN, NBET`
-                : "Waiting for data from TCN, NBET, and community reports"
+                ? `${reports.length} community reports • Data from power.gov.ng`
+                : "Waiting for data from power.gov.ng and community reports"
               }
             </p>
             <div className="flex items-center gap-4">

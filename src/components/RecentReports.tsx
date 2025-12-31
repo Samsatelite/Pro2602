@@ -3,26 +3,27 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Zap, ZapOff, Clock, ThumbsUp, ThumbsDown, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Report {
-  id: string;
-  location: string;
-  status: "available" | "unavailable";
-  timestamp: string;
-  upvotes: number;
-  downvotes: number;
-  user: string;
-}
+import { PowerReport } from "@/hooks/usePowerReports";
+import { formatDistanceToNow } from "date-fns";
 
 interface RecentReportsProps {
-  reports?: Report[];
+  reports?: PowerReport[];
+  loading?: boolean;
 }
 
-export function RecentReports({ reports = [] }: RecentReportsProps) {
+export function RecentReports({ reports = [], loading = false }: RecentReportsProps) {
   const hasReports = reports.length > 0;
 
+  const formatTimestamp = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    } catch {
+      return "Just now";
+    }
+  };
+
   return (
-    <Card variant="glass" className="animate-fade-in h-full" style={{ animationDelay: "300ms" }}>
+    <Card className="animate-fade-in h-full border-border" style={{ animationDelay: "300ms" }}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -35,14 +36,18 @@ export function RecentReports({ reports = [] }: RecentReportsProps) {
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {hasReports ? (
+        {loading ? (
+          <div className="h-[360px] flex items-center justify-center text-muted-foreground">
+            <p className="text-sm">Loading reports...</p>
+          </div>
+        ) : hasReports ? (
           <ScrollArea className="h-[360px] px-6 pb-6">
             <div className="space-y-3">
               {reports.map((report, index) => (
                 <div
                   key={report.id}
                   className={cn(
-                    "p-3 rounded-lg border transition-all duration-200 hover:bg-secondary/30 animate-slide-in-right",
+                    "p-3 rounded-lg border transition-all duration-200 hover:bg-muted/50 animate-slide-in-right",
                     report.status === "available"
                       ? "bg-success/5 border-success/20"
                       : "bg-critical/5 border-critical/20"
@@ -65,12 +70,12 @@ export function RecentReports({ reports = [] }: RecentReportsProps) {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{report.location}</span>
+                          <span className="font-medium text-sm">{report.region || report.address || "Unknown Location"}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <span>{report.user}</span>
+                          <span>Community Report</span>
                           <span>•</span>
-                          <span>{report.timestamp}</span>
+                          <span>{formatTimestamp(report.created_at)}</span>
                         </div>
                       </div>
                     </div>

@@ -6,62 +6,87 @@
 
 @layer base {
   :root {
-    --background: 220 20% 6%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
 
-    --card: 220 18% 10%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
 
-    --popover: 220 18% 10%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
 
-    --primary: 142 76% 45%;
-    --primary-foreground: 220 20% 6%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 16% 16%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
 
-    --muted: 220 14% 14%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
 
-    --accent: 45 100% 50%;
-    --accent-foreground: 220 20% 6%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
 
-    --success: 142 76% 45%;
-    --success-foreground: 220 20% 6%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
 
-    --warning: 45 100% 50%;
-    --warning-foreground: 220 20% 6%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
 
-    --critical: 0 72% 51%;
-    --critical-foreground: 210 40% 98%;
+    --critical: 0 84.2% 60.2%;
+    --critical-foreground: 0 0% 98%;
 
-    --border: 220 16% 18%;
-    --input: 220 16% 18%;
-    --ring: 142 76% 45%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 142 76% 36%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --glow-primary: 0 0 12px hsl(142 76% 45% / 0.15);
-    --glow-warning: 0 0 12px hsl(45 100% 50% / 0.15);
-    --glow-critical: 0 0 12px hsl(0 72% 51% / 0.15);
+    --glow-primary: 0 0 12px hsl(142 76% 36% / 0.15);
+    --glow-warning: 0 0 12px hsl(38 92% 50% / 0.15);
+    --glow-critical: 0 0 12px hsl(0 84.2% 60.2% / 0.15);
 
-    --sidebar-background: 220 18% 8%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 142 76% 45%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 142 76% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 16% 14%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 220 16% 18%;
-    --sidebar-ring: 142 76% 45%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 240 5.9% 90%;
+    --sidebar-ring: 142 76% 36%;
   }
 
   .dark {
-    --background: 220 20% 6%;
-    --foreground: 210 40% 98%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 142 76% 45%;
+    --primary-foreground: 240 10% 3.9%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 142 76% 45%;
   }
 }
 
@@ -82,7 +107,7 @@
 
 @layer components {
   .glass-card {
-    @apply bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl;
+    @apply bg-card/80 backdrop-blur-xl border border-border rounded-xl;
   }
 
   .glow-success {
@@ -125,15 +150,15 @@
 
 @layer utilities {
   .text-gradient-primary {
-    @apply bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary to-emerald-600 bg-clip-text text-transparent;
   }
 
   .text-gradient-warning {
-    @apply bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-warning to-orange-500 bg-clip-text text-transparent;
   }
 
   .text-gradient-critical {
-    @apply bg-gradient-to-r from-destructive to-rose-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-destructive to-rose-500 bg-clip-text text-transparent;
   }
 
   .animate-float {
