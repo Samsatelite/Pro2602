@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { GridStatusCard } from "@/components/GridStatusCard";
 import { GridHealthIndicator } from "@/components/GridHealthIndicator";
@@ -16,24 +16,29 @@ import { supabase } from "@/integrations/supabase/client";
 const Index = () => {
   const { gridData, loading: gridLoading, refetch: refetchGrid } = useGridData();
   const { reports, loading: reportsLoading } = usePowerReports();
-  const { news, loading: newsLoading } = useGridNews();
+  const { news, loading: newsLoading, fetchFromNERC } = useGridNews();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefreshGrid = async () => {
     setIsRefreshing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-grid-data');
-      if (error) throw error;
+      // Refresh both grid data and news
+      const [gridResult, newsResult] = await Promise.all([
+        supabase.functions.invoke('fetch-grid-data'),
+        supabase.functions.invoke('fetch-nerc-news')
+      ]);
       
-      if (data?.success) {
-        toast.success("Grid data refreshed from power.gov.ng");
+      if (gridResult.error) throw gridResult.error;
+      
+      if (gridResult.data?.success) {
+        toast.success("Data refreshed from power.gov.ng and NERC");
         refetchGrid();
       } else {
-        throw new Error(data?.error || "Failed to fetch data");
+        throw new Error(gridResult.data?.error || "Failed to fetch data");
       }
     } catch (error) {
-      console.error("Error refreshing grid:", error);
-      toast.error("Failed to refresh grid data");
+      console.error("Error refreshing:", error);
+      toast.error("Failed to refresh data");
     } finally {
       setIsRefreshing(false);
     }
@@ -57,7 +62,7 @@ const Index = () => {
               Grid Dashboard
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Real-time national grid status and community power reports
+              Real-time national grid status and community power reports • Auto-refreshes every 5 min
             </p>
           </div>
           <div className="flex gap-2">

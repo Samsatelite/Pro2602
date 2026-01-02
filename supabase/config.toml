@@ -2,3 +2,6 @@ project_id = "giqjrqqgsxuearrcsfyh"
 
 [functions.fetch-grid-data]
 verify_jwt = false
+
+[functions.fetch-nerc-news]
+verify_jwt = false

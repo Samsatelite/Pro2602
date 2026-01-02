@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,55 +14,31 @@ import { Slider } from "@/components/ui/slider";
 import { Zap, ZapOff, MapPin, Clock, Send, CheckCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { RadarAutocomplete } from "./RadarAutocomplete";
+import { LocationSelector, LocationData } from "./LocationSelector";
 import { usePowerReports } from "@/hooks/usePowerReports";
 
 interface ReportPowerDialogProps {
   children: React.ReactNode;
 }
 
-interface SelectedLocation {
-  address: string;
-  region: string;
-  latitude: number;
-  longitude: number;
-}
-
 export function ReportPowerDialog({ children }: ReportPowerDialogProps) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<"available" | "unavailable" | null>(null);
-  const [location, setLocation] = useState<SelectedLocation | null>(null);
+  const [location, setLocation] = useState<LocationData | null>(null);
   const [duration, setDuration] = useState([0]);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { submitReport } = usePowerReports();
 
-  const handleLocationSelect = (address: {
-    formattedAddress: string;
-    city: string;
-    state: string;
-    latitude: number;
-    longitude: number;
-  }) => {
-    setLocation({
-      address: address.formattedAddress,
-      region: `${address.city}, ${address.state}`,
-      latitude: address.latitude,
-      longitude: address.longitude,
-    });
-  };
+  const handleLocationChange = useCallback((loc: LocationData) => {
+    setLocation(loc);
+  }, []);
 
   const handleGetLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setLocation({
-            address: `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`,
-            region: "Current Location",
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-          toast.success("Location detected");
+          toast.success("GPS location detected - please still select your state/LGA");
         },
         () => {
           toast.error("Could not get your location");
@@ -72,18 +48,21 @@ export function ReportPowerDialog({ children }: ReportPowerDialogProps) {
   };
 
   const handleSubmit = async () => {
-    if (!status || !location) {
+    if (!status || !location || !location.state || !location.lga || !location.community) {
       toast.error("Please fill in all required fields");
       return;
     }
     
     setIsSubmitting(true);
     try {
+      const address = `${location.community}, ${location.lga}, ${location.state}`;
+      const region = `${location.community}, ${location.lga}, ${location.state}`;
+      
       await submitReport({
-        latitude: location.latitude,
-        longitude: location.longitude,
-        address: location.address,
-        region: location.region,
+        latitude: 0, // We'll use 0 since we're using address-based location now
+        longitude: 0,
+        address,
+        region,
         status,
         estimated_duration: duration[0] > 0 
           ? `${duration[0]} hour${duration[0] > 1 ? "s" : ""}` 
@@ -110,10 +89,12 @@ export function ReportPowerDialog({ children }: ReportPowerDialogProps) {
     }
   };
 
+  const isLocationComplete = location?.state && location?.lga && location?.community;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md bg-card border-border">
+      <DialogContent className="sm:max-w-md bg-card border-border max-h-[90vh] overflow-y-auto">
         {!submitted ? (
           <>
             <DialogHeader>
@@ -187,27 +168,26 @@ export function ReportPowerDialog({ children }: ReportPowerDialogProps) {
 
               {/* Location Input */}
               <div className="space-y-3">
-                <Label>Your Location *</Label>
-                <div className="flex gap-2">
-                  <RadarAutocomplete
-                    placeholder="Search your address..."
-                    onSelect={handleLocationSelect}
-                    value={location?.address}
-                    className="flex-1"
-                  />
+                <div className="flex items-center justify-between">
+                  <Label>Your Location *</Label>
                   <Button
                     type="button"
-                    variant="outline"
-                    size="icon"
+                    variant="ghost"
+                    size="sm"
                     onClick={handleGetLocation}
-                    title="Use my location"
+                    className="h-7 text-xs"
                   >
-                    <MapPin className="w-4 h-4" />
+                    <MapPin className="w-3 h-3 mr-1" />
+                    Use GPS
                   </Button>
                 </div>
-                {location && (
+                <LocationSelector 
+                  value={location || undefined}
+                  onChange={handleLocationChange}
+                />
+                {isLocationComplete && (
                   <p className="text-xs text-muted-foreground">
-                    📍 {location.region}
+                    📍 {location.community}, {location.lga}, {location.state}
                   </p>
                 )}
               </div>
@@ -243,7 +223,7 @@ export function ReportPowerDialog({ children }: ReportPowerDialogProps) {
                 onClick={handleSubmit}
                 className="w-full"
                 variant="glow"
-                disabled={!status || !location || isSubmitting}
+                disabled={!status || !isLocationComplete || isSubmitting}
               >
                 {isSubmitting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

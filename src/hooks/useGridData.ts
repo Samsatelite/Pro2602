@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface GridData {
@@ -10,6 +10,8 @@ interface GridData {
   lastUpdated: string | null;
 }
 
+const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
 export function useGridData() {
   const [gridData, setGridData] = useState<GridData>({
     generation: null,
@@ -20,6 +22,7 @@ export function useGridData() {
     lastUpdated: null,
   });
   const [loading, setLoading] = useState(true);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchGridData = useCallback(async () => {
     try {
@@ -53,8 +56,32 @@ export function useGridData() {
     }
   }, []);
 
+  const refreshFromSource = useCallback(async () => {
+    try {
+      console.log("Auto-refreshing grid data from source...");
+      const { data, error } = await supabase.functions.invoke('fetch-grid-data');
+      
+      if (error) {
+        console.error("Error refreshing grid data:", error);
+        return;
+      }
+      
+      if (data?.success) {
+        console.log("Grid data refreshed successfully");
+        await fetchGridData();
+      }
+    } catch (error) {
+      console.error("Error in auto-refresh:", error);
+    }
+  }, [fetchGridData]);
+
   useEffect(() => {
     fetchGridData();
+
+    // Set up auto-refresh interval
+    intervalRef.current = setInterval(() => {
+      refreshFromSource();
+    }, AUTO_REFRESH_INTERVAL);
 
     // Subscribe to real-time updates
     const gridChannel = supabase
@@ -105,10 +132,13 @@ export function useGridData() {
       .subscribe();
 
     return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
       supabase.removeChannel(gridChannel);
       supabase.removeChannel(reportsChannel);
     };
-  }, [fetchGridData]);
+  }, [fetchGridData, refreshFromSource]);
 
   return { gridData, loading, refetch: fetchGridData };
 }
