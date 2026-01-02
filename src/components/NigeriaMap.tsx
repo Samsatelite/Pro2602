@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MapPin, Search, X } from "lucide-react";
 import { PowerReport } from "@/hooks/usePowerReports";
 import { LocationSelector, LocationData } from "./LocationSelector";
 import NigeriaMapSvg from "@/assets/nigeria-map.svg";
@@ -13,9 +14,15 @@ interface NigeriaMapProps {
 
 export function NigeriaMap({ reports = [] }: NigeriaMapProps) {
   const [searchLocation, setSearchLocation] = useState<LocationData | null>(null);
+  const [resetKey, setResetKey] = useState(0);
 
   const handleSearchChange = useCallback((location: LocationData) => {
     setSearchLocation(location);
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchLocation(null);
+    setResetKey(prev => prev + 1);
   }, []);
 
   const filteredReports = useMemo(() => {
@@ -67,11 +74,25 @@ export function NigeriaMap({ reports = [] }: NigeriaMapProps) {
       <CardContent className="space-y-4">
         {/* Search Section */}
         <div className="p-3 bg-muted/50 rounded-lg border border-border">
-          <div className="flex items-center gap-2 mb-3">
-            <Search className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Search Community Reports</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Search className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Search Community Reports</span>
+            </div>
+            {isSearchActive && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleClearSearch}
+                className="h-7 px-2 text-xs"
+              >
+                <X className="w-3 h-3 mr-1" />
+                Clear
+              </Button>
+            )}
           </div>
           <LocationSelector 
+            key={resetKey}
             onChange={handleSearchChange}
             showLabels={false}
           />
