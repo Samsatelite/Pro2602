@@ -13,6 +13,7 @@ interface GridData {
 const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 export function useGridData() {
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [gridData, setGridData] = useState<GridData>({
     generation: null,
     frequency: null,
@@ -22,7 +23,6 @@ export function useGridData() {
     lastUpdated: null,
   });
   const [loading, setLoading] = useState(true);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchGridData = useCallback(async () => {
     try {
