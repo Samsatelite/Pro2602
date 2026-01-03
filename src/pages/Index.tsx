@@ -5,6 +5,7 @@ import { GridHealthIndicator } from "@/components/GridHealthIndicator";
 import { NigeriaMap } from "@/components/NigeriaMap";
 import { RecentReports } from "@/components/RecentReports";
 import { GridNews } from "@/components/GridNews";
+import { GridTrendChart } from "@/components/GridTrendChart";
 import { Zap, Activity, Gauge, BarChart3, Share2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -62,7 +63,7 @@ const Index = () => {
               Grid Dashboard
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Real-time national grid status and community power reports • Auto-refreshes every 5 min
+              Real-time national grid status and community power reports
             </p>
           </div>
           <div className="flex gap-2">
@@ -134,8 +135,9 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Bottom Grid - News only */}
-        <div>
+        {/* Bottom Grid - Chart and News */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          <GridTrendChart />
           <GridNews news={news} loading={newsLoading} />
         </div>
 

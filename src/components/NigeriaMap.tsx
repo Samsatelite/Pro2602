@@ -7,6 +7,7 @@ import { PowerReport } from "@/hooks/usePowerReports";
 import { LocationSelector, LocationData } from "./LocationSelector";
 import NigeriaMapSvg from "@/assets/nigeria-map.svg";
 import { formatDistanceToNow } from "date-fns";
+import { stateCoordinates, getStateCoordinate } from "@/data/stateCoordinates";
 
 interface NigeriaMapProps {
   reports?: PowerReport[];
@@ -35,18 +36,75 @@ export function NigeriaMap({ reports = [] }: NigeriaMapProps) {
       const reportRegion = (report.region || "").toLowerCase();
       const combined = `${reportAddress} ${reportRegion}`;
 
-      if (searchLocation.community) {
-        return combined.includes(searchLocation.community.toLowerCase());
-      }
-      if (searchLocation.lga) {
-        return combined.includes(searchLocation.lga.toLowerCase());
-      }
+      // Match state first
       if (searchLocation.state) {
-        return combined.includes(searchLocation.state.toLowerCase());
+        const stateMatch = combined.includes(searchLocation.state.toLowerCase());
+        if (!stateMatch) return false;
       }
+
+      // Then match LGA
+      if (searchLocation.lga) {
+        const lgaMatch = combined.includes(searchLocation.lga.toLowerCase());
+        if (!lgaMatch) return false;
+      }
+
+      // Then match partial community name
+      if (searchLocation.community) {
+        const communityLower = searchLocation.community.toLowerCase();
+        const communityMatch = combined.includes(communityLower);
+        if (!communityMatch) return false;
+      }
+
       return true;
     });
   }, [reports, searchLocation]);
+
+  // Group reports by state to show dots on the map
+  const reportsByState = useMemo(() => {
+    const stateMap: Record<string, { available: number; unavailable: number }> = {};
+    
+    reports.forEach((report) => {
+      const region = report.region || report.address || "";
+      
+      // Try to extract state from region
+      stateCoordinates.forEach((state) => {
+        if (region.toLowerCase().includes(state.name.toLowerCase())) {
+          if (!stateMap[state.name]) {
+            stateMap[state.name] = { available: 0, unavailable: 0 };
+          }
+          if (report.status === "available") {
+            stateMap[state.name].available++;
+          } else {
+            stateMap[state.name].unavailable++;
+          }
+        }
+      });
+    });
+    
+    return stateMap;
+  }, [reports]);
+
+  // Generate status dots for the map
+  const statusDots = useMemo(() => {
+    return stateCoordinates
+      .map((state) => {
+        const stateReports = reportsByState[state.name];
+        if (!stateReports) return null;
+        
+        const total = stateReports.available + stateReports.unavailable;
+        if (total === 0) return null;
+        
+        // Determine predominant status
+        const status = stateReports.available >= stateReports.unavailable ? "available" : "unavailable";
+        
+        return {
+          ...state,
+          status,
+          count: total,
+        };
+      })
+      .filter(Boolean);
+  }, [reportsByState]);
 
   const availableCount = filteredReports.filter(r => r.status === "available").length;
   const unavailableCount = filteredReports.filter(r => r.status === "unavailable").length;
@@ -98,13 +156,49 @@ export function NigeriaMap({ reports = [] }: NigeriaMapProps) {
           />
         </div>
 
-        {/* Map */}
+        {/* Map with Status Dots */}
         <div className="relative w-full aspect-[1000/812] bg-muted/30 rounded-lg overflow-hidden">
           <img 
             src={NigeriaMapSvg} 
             alt="Map of Nigeria showing power status by state"
             className="w-full h-full object-contain p-4"
           />
+          
+          {/* Status dots overlay */}
+          <svg 
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            viewBox="0 0 1000 812"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            {statusDots.map((dot) => dot && (
+              <g key={dot.name}>
+                {/* Outer glow */}
+                <circle
+                  cx={dot.x}
+                  cy={dot.y}
+                  r={12}
+                  className={`${dot.status === "available" ? "fill-success/30" : "fill-critical/30"}`}
+                />
+                {/* Main dot */}
+                <circle
+                  cx={dot.x}
+                  cy={dot.y}
+                  r={8}
+                  className={`${dot.status === "available" ? "fill-success" : "fill-critical"} stroke-background stroke-2`}
+                />
+                {/* Pulse animation for unavailable */}
+                {dot.status === "unavailable" && (
+                  <circle
+                    cx={dot.x}
+                    cy={dot.y}
+                    r={8}
+                    className="fill-none stroke-critical stroke-2 animate-ping"
+                    style={{ animationDuration: "2s" }}
+                  />
+                )}
+              </g>
+            ))}
+          </svg>
           
           {filteredReports.length > 0 && (
             <div className="absolute bottom-4 left-4 right-4">
