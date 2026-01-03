@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Search, X } from "lucide-react";
 import { PowerReport } from "@/hooks/usePowerReports";
 import { LocationSelector, LocationData } from "./LocationSelector";
-import NigeriaMapSvg from "@/assets/nigeria-map.svg";
 import { formatDistanceToNow } from "date-fns";
-import { stateCoordinates, getStateCoordinate } from "@/data/stateCoordinates";
+import { stateCoordinates } from "@/data/stateCoordinates";
+import { NigeriaMapCanvas } from "./NigeriaMapCanvas";
 
 interface NigeriaMapProps {
   reports?: PowerReport[];
@@ -84,27 +84,10 @@ export function NigeriaMap({ reports = [] }: NigeriaMapProps) {
     return stateMap;
   }, [reports]);
 
-  // Generate status dots for the map
-  const statusDots = useMemo(() => {
-    return stateCoordinates
-      .map((state) => {
-        const stateReports = reportsByState[state.name];
-        if (!stateReports) return null;
-        
-        const total = stateReports.available + stateReports.unavailable;
-        if (total === 0) return null;
-        
-        // Determine predominant status
-        const status = stateReports.available >= stateReports.unavailable ? "available" : "unavailable";
-        
-        return {
-          ...state,
-          status,
-          count: total,
-        };
-      })
-      .filter(Boolean);
-  }, [reportsByState]);
+  const handleStateClick = useCallback((stateName: string) => {
+    setSearchLocation({ state: stateName, lga: "", community: "" });
+    setResetKey(prev => prev + 1);
+  }, []);
 
   const availableCount = filteredReports.filter(r => r.status === "available").length;
   const unavailableCount = filteredReports.filter(r => r.status === "unavailable").length;
@@ -156,49 +139,12 @@ export function NigeriaMap({ reports = [] }: NigeriaMapProps) {
           />
         </div>
 
-        {/* Map with Status Dots */}
-        <div className="relative w-full aspect-[1000/812] bg-muted/30 rounded-lg overflow-hidden">
-          <img 
-            src={NigeriaMapSvg} 
-            alt="Map of Nigeria showing power status by state"
-            className="w-full h-full object-contain p-4"
+        {/* Interactive Nigeria Map */}
+        <div className="relative w-full bg-muted/30 rounded-lg overflow-hidden p-4">
+          <NigeriaMapCanvas 
+            reportsByState={reportsByState}
+            onStateClick={handleStateClick}
           />
-          
-          {/* Status dots overlay */}
-          <svg 
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            viewBox="0 0 1000 812"
-            preserveAspectRatio="xMidYMid meet"
-          >
-            {statusDots.map((dot) => dot && (
-              <g key={dot.name}>
-                {/* Outer glow */}
-                <circle
-                  cx={dot.x}
-                  cy={dot.y}
-                  r={12}
-                  className={`${dot.status === "available" ? "fill-success/30" : "fill-critical/30"}`}
-                />
-                {/* Main dot */}
-                <circle
-                  cx={dot.x}
-                  cy={dot.y}
-                  r={8}
-                  className={`${dot.status === "available" ? "fill-success" : "fill-critical"} stroke-background stroke-2`}
-                />
-                {/* Pulse animation for unavailable */}
-                {dot.status === "unavailable" && (
-                  <circle
-                    cx={dot.x}
-                    cy={dot.y}
-                    r={8}
-                    className="fill-none stroke-critical stroke-2 animate-ping"
-                    style={{ animationDuration: "2s" }}
-                  />
-                )}
-              </g>
-            ))}
-          </svg>
           
           {filteredReports.length > 0 && (
             <div className="absolute bottom-4 left-4 right-4">
