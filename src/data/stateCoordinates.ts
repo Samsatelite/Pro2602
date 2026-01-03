@@ -1,50 +1,50 @@
-// Approximate center coordinates for Nigerian states on the SVG map (1000x812)
-// These are rough approximations based on the SVG viewBox
+// Geographic center coordinates for Nigerian states (lat/lng)
+// Used for accurate map positioning
 
 export interface StateCoordinate {
   name: string;
-  x: number;
-  y: number;
+  lat: number;
+  lng: number;
 }
 
 export const stateCoordinates: StateCoordinate[] = [
-  { name: "Abia", x: 460, y: 510 },
-  { name: "Adamawa", x: 680, y: 300 },
-  { name: "Akwa Ibom", x: 485, y: 580 },
-  { name: "Anambra", x: 420, y: 460 },
-  { name: "Bauchi", x: 570, y: 220 },
-  { name: "Bayelsa", x: 390, y: 590 },
-  { name: "Benue", x: 520, y: 380 },
-  { name: "Borno", x: 700, y: 150 },
-  { name: "Cross River", x: 510, y: 530 },
-  { name: "Delta", x: 370, y: 520 },
-  { name: "Ebonyi", x: 480, y: 470 },
-  { name: "Edo", x: 360, y: 460 },
-  { name: "Ekiti", x: 300, y: 400 },
-  { name: "Enugu", x: 450, y: 440 },
-  { name: "Federal Capital Territory", x: 430, y: 320 },
-  { name: "Gombe", x: 620, y: 240 },
-  { name: "Imo", x: 430, y: 510 },
-  { name: "Jigawa", x: 540, y: 130 },
-  { name: "Kaduna", x: 450, y: 220 },
-  { name: "Kano", x: 500, y: 150 },
-  { name: "Katsina", x: 440, y: 120 },
-  { name: "Kebbi", x: 290, y: 180 },
-  { name: "Kogi", x: 400, y: 380 },
-  { name: "Kwara", x: 310, y: 340 },
-  { name: "Lagos", x: 210, y: 470 },
-  { name: "Nasarawa", x: 490, y: 330 },
-  { name: "Niger", x: 360, y: 270 },
-  { name: "Ogun", x: 230, y: 440 },
-  { name: "Ondo", x: 290, y: 450 },
-  { name: "Osun", x: 270, y: 410 },
-  { name: "Oyo", x: 250, y: 380 },
-  { name: "Plateau", x: 540, y: 310 },
-  { name: "Rivers", x: 420, y: 560 },
-  { name: "Sokoto", x: 330, y: 120 },
-  { name: "Taraba", x: 620, y: 350 },
-  { name: "Yobe", x: 640, y: 140 },
-  { name: "Zamfara", x: 380, y: 160 }
+  { name: "Abia", lat: 5.4527, lng: 7.5248 },
+  { name: "Adamawa", lat: 9.3265, lng: 12.3984 },
+  { name: "Akwa Ibom", lat: 5.0377, lng: 7.9128 },
+  { name: "Anambra", lat: 6.2209, lng: 7.0670 },
+  { name: "Bauchi", lat: 10.7761, lng: 9.9992 },
+  { name: "Bayelsa", lat: 4.7719, lng: 6.0699 },
+  { name: "Benue", lat: 7.3369, lng: 8.7404 },
+  { name: "Borno", lat: 11.8846, lng: 13.1520 },
+  { name: "Cross River", lat: 5.8702, lng: 8.5988 },
+  { name: "Delta", lat: 5.7040, lng: 5.9339 },
+  { name: "Ebonyi", lat: 6.2649, lng: 8.0137 },
+  { name: "Edo", lat: 6.6342, lng: 5.9304 },
+  { name: "Ekiti", lat: 7.7190, lng: 5.3110 },
+  { name: "Enugu", lat: 6.5364, lng: 7.4356 },
+  { name: "Federal Capital Territory", lat: 9.0765, lng: 7.3986 },
+  { name: "Gombe", lat: 10.2897, lng: 11.1673 },
+  { name: "Imo", lat: 5.5720, lng: 7.0588 },
+  { name: "Jigawa", lat: 12.2280, lng: 9.5616 },
+  { name: "Kaduna", lat: 10.3764, lng: 7.7095 },
+  { name: "Kano", lat: 11.7471, lng: 8.5247 },
+  { name: "Katsina", lat: 12.9816, lng: 7.6223 },
+  { name: "Kebbi", lat: 11.4942, lng: 4.2333 },
+  { name: "Kogi", lat: 7.7337, lng: 6.6906 },
+  { name: "Kwara", lat: 8.9669, lng: 4.3874 },
+  { name: "Lagos", lat: 6.5244, lng: 3.3792 },
+  { name: "Nasarawa", lat: 8.4999, lng: 8.1997 },
+  { name: "Niger", lat: 9.9309, lng: 5.5983 },
+  { name: "Ogun", lat: 7.1600, lng: 3.3500 },
+  { name: "Ondo", lat: 6.9149, lng: 5.1478 },
+  { name: "Osun", lat: 7.5629, lng: 4.5200 },
+  { name: "Oyo", lat: 8.1574, lng: 3.6147 },
+  { name: "Plateau", lat: 9.2182, lng: 9.5175 },
+  { name: "Rivers", lat: 4.8396, lng: 6.9112 },
+  { name: "Sokoto", lat: 13.0533, lng: 5.2476 },
+  { name: "Taraba", lat: 7.9994, lng: 10.7740 },
+  { name: "Yobe", lat: 12.2939, lng: 11.4390 },
+  { name: "Zamfara", lat: 12.1222, lng: 6.2236 }
 ];
 
 export function getStateCoordinate(stateName: string): StateCoordinate | undefined {
