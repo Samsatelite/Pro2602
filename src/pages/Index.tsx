@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { GridStatusCard } from "@/components/GridStatusCard";
 import { GridHealthIndicator } from "@/components/GridHealthIndicator";
@@ -6,7 +6,7 @@ import { NigeriaMap } from "@/components/NigeriaMap";
 import { RecentReports } from "@/components/RecentReports";
 import { GridNews } from "@/components/GridNews";
 import { GridTrendChart } from "@/components/GridTrendChart";
-import { Zap, Activity, Gauge, BarChart3, Share2, RefreshCw } from "lucide-react";
+import { Zap, Activity, Gauge, BarChart3, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useGridData } from "@/hooks/useGridData";
@@ -14,36 +14,41 @@ import { usePowerReports } from "@/hooks/usePowerReports";
 import { useGridNews } from "@/hooks/useGridNews";
 import { supabase } from "@/integrations/supabase/client";
 
+const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
 const Index = () => {
   const { gridData, loading: gridLoading, refetch: refetchGrid } = useGridData();
   const { reports, loading: reportsLoading } = usePowerReports();
   const { news, loading: newsLoading, fetchFromNERC } = useGridNews();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleRefreshGrid = async () => {
-    setIsRefreshing(true);
+  const refreshData = useCallback(async () => {
     try {
-      // Refresh both grid data and news
       const [gridResult, newsResult] = await Promise.all([
         supabase.functions.invoke('fetch-grid-data'),
         supabase.functions.invoke('fetch-nerc-news')
       ]);
       
-      if (gridResult.error) throw gridResult.error;
-      
       if (gridResult.data?.success) {
-        toast.success("Data refreshed from power.gov.ng and NERC");
         refetchGrid();
-      } else {
-        throw new Error(gridResult.data?.error || "Failed to fetch data");
       }
     } catch (error) {
-      console.error("Error refreshing:", error);
-      toast.error("Failed to refresh data");
-    } finally {
-      setIsRefreshing(false);
+      console.error("Auto-refresh error:", error);
     }
-  };
+  }, [refetchGrid]);
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    refreshData(); // Initial fetch
+    
+    intervalRef.current = setInterval(refreshData, AUTO_REFRESH_INTERVAL);
+    
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [refreshData]);
 
   const handleShare = () => {
     toast.success("Sharing options coming soon!", {
@@ -66,21 +71,10 @@ const Index = () => {
               Real-time national grid status and community power reports
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleRefreshGrid} 
-              disabled={isRefreshing}
-              className="sm:w-auto"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-            <Button variant="outline" onClick={handleShare} className="sm:w-auto">
-              <Share2 className="w-4 h-4 mr-2" />
-              Share
-            </Button>
-          </div>
+          <Button variant="outline" onClick={handleShare} className="sm:w-auto">
+            <Share2 className="w-4 h-4 mr-2" />
+            Share
+          </Button>
         </div>
         <GridHealthIndicator 
           status={gridData.status} 
