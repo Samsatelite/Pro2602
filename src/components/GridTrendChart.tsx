@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Legend
+} from "recharts";
 import { format, subDays, subWeeks, subMonths } from "date-fns";
 
 type TimeRange = "daily" | "weekly" | "monthly";
@@ -23,20 +26,9 @@ interface GridDataPoint {
 
 interface ChartDataPoint {
   time: string;
-  generation: number | null;
-  load: number | null;
+  generation: number;
+  load: number;
 }
-
-const chartConfig = {
-  generation: {
-    label: "Generation (MW)",
-    color: "hsl(var(--chart-1))",
-  },
-  load: {
-    label: "Load (%)",
-    color: "hsl(var(--chart-2))",
-  },
-} satisfies ChartConfig;
 
 export function GridTrendChart() {
   const [timeRange, setTimeRange] = useState<TimeRange>("daily");
@@ -73,42 +65,19 @@ export function GridTrendChart() {
 
         if (error) {
           console.error("Error fetching grid trend data:", error);
+          setChartData(generatePlaceholderData(timeRange));
           return;
         }
 
         if (data && data.length > 0) {
-          const formattedData = data.map((point: GridDataPoint) => {
-            let timeLabel: string;
-            switch (timeRange) {
-              case "daily":
-                timeLabel = format(new Date(point.created_at), "HH:00");
-                break;
-              case "weekly":
-                timeLabel = format(new Date(point.created_at), "EEE");
-                break;
-              case "monthly":
-                timeLabel = format(new Date(point.created_at), "MMM dd");
-                break;
-              default:
-                timeLabel = format(new Date(point.created_at), "HH:00");
-            }
-            
-            return {
-              time: timeLabel,
-              generation: point.generation_mw,
-              load: point.load_percent,
-            };
-          });
+          const formattedData = formatDataForTimeRange(data, timeRange);
           setChartData(formattedData);
         } else {
-          // Generate placeholder data for demo
-          const placeholderData = generatePlaceholderData(timeRange);
-          setChartData(placeholderData);
+          setChartData(generatePlaceholderData(timeRange));
         }
       } catch (error) {
         console.error("Error fetching grid trend data:", error);
-        const placeholderData = generatePlaceholderData(timeRange);
-        setChartData(placeholderData);
+        setChartData(generatePlaceholderData(timeRange));
       } finally {
         setLoading(false);
       }
@@ -117,30 +86,14 @@ export function GridTrendChart() {
     fetchData();
   }, [timeRange]);
 
-  const getDescription = () => {
-    switch (timeRange) {
-      case "daily":
-        return "00:00 - 23:00";
-      case "weekly":
-        return "Mon - Sun";
-      case "monthly":
-        return "Last 30 days";
-      default:
-        return "";
-    }
-  };
-
   return (
-    <Card className="animate-fade-in border-border" style={{ animationDelay: "400ms" }}>
+    <Card className="animate-fade-in" style={{ animationDelay: "400ms" }}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              Grid Trend
-            </CardTitle>
-            <CardDescription>{getDescription()}</CardDescription>
-          </div>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            Grid Trend
+          </CardTitle>
           <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
             <TabsList className="h-8">
               <TabsTrigger value="daily" className="text-xs px-3 h-6">
@@ -158,48 +111,158 @@ export function GridTrendChart() {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+          <div className="h-[280px] flex items-center justify-center text-muted-foreground">
             Loading chart data...
           </div>
         ) : (
-          <ChartContainer config={chartConfig} className="h-[250px] w-full">
-            <LineChart
-              accessibilityLayer
-              data={chartData}
-              margin={{
-                left: 12,
-                right: 12,
-              }}
-            >
-              <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis
-                dataKey="time"
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis 
+                dataKey="time" 
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                 tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                className="text-xs fill-muted-foreground"
+                axisLine={{ stroke: "hsl(var(--border))" }}
               />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <YAxis 
+                yAxisId="left"
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                tickLine={false}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+                label={{ 
+                  value: "MW", 
+                  angle: -90, 
+                  position: "insideLeft",
+                  style: { fontSize: 11, fill: "hsl(var(--muted-foreground))" }
+                }}
+              />
+              <YAxis 
+                yAxisId="right"
+                orientation="right"
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                tickLine={false}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+                label={{ 
+                  value: "Load %", 
+                  angle: 90, 
+                  position: "insideRight",
+                  style: { fontSize: 11, fill: "hsl(var(--muted-foreground))" }
+                }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "8px",
+                  fontSize: "12px"
+                }}
+                labelStyle={{ color: "hsl(var(--foreground))" }}
+              />
+              <Legend 
+                wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
+              />
               <Line
+                yAxisId="left"
+                type="monotone"
                 dataKey="generation"
-                type="monotone"
-                stroke="var(--color-generation)"
+                name="Generation (MW)"
+                stroke="hsl(var(--chart-1))"
                 strokeWidth={2}
                 dot={false}
+                activeDot={{ r: 4, fill: "hsl(var(--chart-1))" }}
               />
               <Line
-                dataKey="load"
+                yAxisId="right"
                 type="monotone"
-                stroke="var(--color-load)"
+                dataKey="load"
+                name="Load (%)"
+                stroke="hsl(var(--chart-2))"
                 strokeWidth={2}
                 dot={false}
+                activeDot={{ r: 4, fill: "hsl(var(--chart-2))" }}
               />
             </LineChart>
-          </ChartContainer>
+          </ResponsiveContainer>
         )}
       </CardContent>
     </Card>
   );
+}
+
+function formatDataForTimeRange(data: GridDataPoint[], timeRange: TimeRange): ChartDataPoint[] {
+  switch (timeRange) {
+    case "daily": {
+      // Group by hour and take latest value for each hour
+      const hourlyMap = new Map<string, ChartDataPoint>();
+      data.forEach((point) => {
+        const hour = format(new Date(point.created_at), "HH:00");
+        hourlyMap.set(hour, {
+          time: hour,
+          generation: point.generation_mw ?? 0,
+          load: point.load_percent ?? 0,
+        });
+      });
+      // Ensure all 24 hours are represented
+      const result: ChartDataPoint[] = [];
+      for (let i = 0; i < 24; i++) {
+        const hour = `${i.toString().padStart(2, "0")}:00`;
+        result.push(hourlyMap.get(hour) || { time: hour, generation: 0, load: 0 });
+      }
+      return result;
+    }
+    case "weekly": {
+      const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const dayMap = new Map<string, { generation: number[]; load: number[] }>();
+      days.forEach(day => dayMap.set(day, { generation: [], load: [] }));
+      
+      data.forEach((point) => {
+        const day = format(new Date(point.created_at), "EEE");
+        const existing = dayMap.get(day);
+        if (existing) {
+          if (point.generation_mw) existing.generation.push(point.generation_mw);
+          if (point.load_percent) existing.load.push(point.load_percent);
+        }
+      });
+      
+      return days.map(day => {
+        const values = dayMap.get(day)!;
+        return {
+          time: day,
+          generation: values.generation.length > 0 
+            ? Math.round(values.generation.reduce((a, b) => a + b, 0) / values.generation.length)
+            : 0,
+          load: values.load.length > 0
+            ? Math.round(values.load.reduce((a, b) => a + b, 0) / values.load.length)
+            : 0,
+        };
+      });
+    }
+    case "monthly": {
+      const dayMap = new Map<string, { generation: number[]; load: number[] }>();
+      
+      data.forEach((point) => {
+        const day = format(new Date(point.created_at), "dd");
+        if (!dayMap.has(day)) {
+          dayMap.set(day, { generation: [], load: [] });
+        }
+        const existing = dayMap.get(day)!;
+        if (point.generation_mw) existing.generation.push(point.generation_mw);
+        if (point.load_percent) existing.load.push(point.load_percent);
+      });
+      
+      return Array.from(dayMap.entries()).map(([day, values]) => ({
+        time: day,
+        generation: values.generation.length > 0 
+          ? Math.round(values.generation.reduce((a, b) => a + b, 0) / values.generation.length)
+          : 0,
+        load: values.load.length > 0
+          ? Math.round(values.load.reduce((a, b) => a + b, 0) / values.load.length)
+          : 0,
+      }));
+    }
+    default:
+      return [];
+  }
 }
 
 function generatePlaceholderData(timeRange: TimeRange): ChartDataPoint[] {
@@ -218,15 +281,11 @@ function generatePlaceholderData(timeRange: TimeRange): ChartDataPoint[] {
         load: Math.floor(Math.random() * 30) + 60,
       }));
     case "monthly":
-      return Array.from({ length: 30 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - 29 + i);
-        return {
-          time: format(date, "MMM dd"),
-          generation: Math.floor(Math.random() * 2000) + 3000,
-          load: Math.floor(Math.random() * 30) + 60,
-        };
-      });
+      return Array.from({ length: 30 }, (_, i) => ({
+        time: (i + 1).toString().padStart(2, "0"),
+        generation: Math.floor(Math.random() * 2000) + 3000,
+        load: Math.floor(Math.random() * 30) + 60,
+      }));
     default:
       return [];
   }
