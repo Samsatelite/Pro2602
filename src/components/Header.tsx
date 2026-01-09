@@ -13,22 +13,17 @@ export function Header() {
               <Zap className="w-5 h-5 text-primary-foreground" />
             </div>
           </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight">
-              <span className="text-gradient-primary">Nigeria</span>
-              <span className="text-foreground"> Grid</span>
-            </h1>
-            <p className="text-[10px] text-muted-foreground -mt-0.5">
-              Energy Intelligence Platform
-            </p>
-          </div>
+          <h1 className="text-lg font-bold tracking-tight">
+            <span className="text-primary">Nigeria</span>
+            <span className="text-foreground"> Grid</span>
+          </h1>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2">
           <ReportPowerDialog>
-            <Button size="sm" className="flex">
-              <Plus className="w-4 h-4 mr-1" />
+            <Button size="default" className="flex px-6 py-3 text-base">
+              <Plus className="w-5 h-5 mr-2" />
               Report Power
             </Button>
           </ReportPowerDialog>
