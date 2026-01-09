@@ -46,7 +46,7 @@
     --radius: 0.5rem;
 
     --chart-1: 142 76% 36%;
-    --chart-2: 142 60% 45%;
+    --chart-2: 45 93% 47%;
 
     --glow-primary: 0 0 12px hsl(142 76% 36% / 0.15);
     --glow-warning: 0 0 12px hsl(45 93% 47% / 0.15);
@@ -94,7 +94,7 @@
     --warning-foreground: 0 0% 10%;
 
     --chart-1: 142 76% 45%;
-    --chart-2: 142 60% 50%;
+    --chart-2: 45 93% 55%;
 
     --border: 0 0% 22%;
     --input: 0 0% 22%;

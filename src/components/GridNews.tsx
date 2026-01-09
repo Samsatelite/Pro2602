@@ -79,9 +79,7 @@ export function GridNews({ news = [], loading = false }: GridNewsProps) {
                   <div
                     key={item.id}
                     className={cn(
-                      "p-3 rounded-lg border transition-all duration-200 hover:bg-muted/50 animate-slide-in-right cursor-pointer",
-                      config.bg,
-                      config.border
+                      "p-3 rounded-lg border border-border bg-card transition-all duration-200 hover:bg-muted/50 animate-slide-in-right cursor-pointer"
                     )}
                     style={{ animationDelay: `${index * 50}ms` }}
                   >

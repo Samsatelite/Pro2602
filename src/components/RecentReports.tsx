@@ -47,10 +47,7 @@ export function RecentReports({ reports = [], loading = false }: RecentReportsPr
                 <div
                   key={report.id}
                   className={cn(
-                    "p-3 rounded-lg border transition-all duration-200 hover:bg-muted/50 animate-slide-in-right",
-                    report.status === "available"
-                      ? "bg-success/5 border-success/20"
-                      : "bg-critical/5 border-critical/20"
+                    "p-3 rounded-lg border border-border bg-card transition-all duration-200 hover:bg-muted/50 animate-slide-in-right"
                   )}
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
