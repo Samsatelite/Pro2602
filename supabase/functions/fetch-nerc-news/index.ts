@@ -34,52 +34,89 @@ Deno.serve(async (req) => {
       description: string | null;
       type: string;
       region: string | null;
+      published_at: string | null;
     }> = [];
 
-    // Match article titles and content - looking for common patterns in news pages
-    const titlePattern = /<h[2-4][^>]*class="[^"]*(?:entry-title|post-title|title)[^"]*"[^>]*>[\s\S]*?<a[^>]*href="[^"]*"[^>]*>([^<]+)<\/a>/gi;
-    const excerptPattern = /<(?:div|p)[^>]*class="[^"]*(?:excerpt|summary|entry-content)[^"]*"[^>]*>([\s\S]*?)<\/(?:div|p)>/gi;
-
-    let match;
-    const titles: string[] = [];
+    // Match article blocks with title, date, and link
+    // NERC typically has articles in a structure with date like "January 8, 2025" or "08/01/2025"
+    const articlePattern = /<article[^>]*>[\s\S]*?<\/article>/gi;
+    const articles = html.match(articlePattern) || [];
     
-    // Try to find article titles
-    while ((match = titlePattern.exec(html)) !== null && titles.length < 10) {
-      const title = match[1].trim().replace(/\s+/g, ' ');
-      if (title && title.length > 10 && !titles.includes(title)) {
-        titles.push(title);
-      }
-    }
-
-    // If no titles found with the pattern, try alternative patterns
-    if (titles.length === 0) {
-      const altPattern = /<a[^>]*href="https?:\/\/nerc\.gov\.ng\/[^"]*"[^>]*>([^<]{20,})<\/a>/gi;
-      while ((match = altPattern.exec(html)) !== null && titles.length < 10) {
-        const title = match[1].trim().replace(/\s+/g, ' ');
-        if (title && !title.includes('Read More') && !title.includes('Click') && !titles.includes(title)) {
-          titles.push(title);
+    for (const article of articles.slice(0, 10)) {
+      // Extract title from h2 or h3 with entry-title class
+      const titleMatch = article.match(/<h[2-4][^>]*class="[^"]*entry-title[^"]*"[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/i) ||
+                         article.match(/<a[^>]*>([^<]{20,100})<\/a>/i);
+      
+      // Extract date - look for common date formats
+      // Format: "January 8, 2025" or "8 January 2025" or "08/01/2025" or "2025-01-08"
+      const dateMatch = article.match(/(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}/i) ||
+                        article.match(/\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}/i) ||
+                        article.match(/\d{1,2}\/\d{1,2}\/\d{4}/) ||
+                        article.match(/\d{4}-\d{2}-\d{2}/);
+      
+      if (titleMatch) {
+        const title = titleMatch[1].trim().replace(/\s+/g, ' ');
+        
+        if (title && title.length > 10 && !newsItems.some(item => item.title === title)) {
+          let publishedAt: string | null = null;
+          
+          if (dateMatch) {
+            try {
+              const dateStr = dateMatch[0];
+              const parsedDate = new Date(dateStr);
+              if (!isNaN(parsedDate.getTime())) {
+                publishedAt = parsedDate.toISOString();
+              }
+            } catch {
+              console.log("Could not parse date:", dateMatch[0]);
+            }
+          }
+          
+          const isAlert = title.toLowerCase().includes('warning') || 
+                          title.toLowerCase().includes('urgent') ||
+                          title.toLowerCase().includes('notice');
+          const isUpdate = title.toLowerCase().includes('update') ||
+                           title.toLowerCase().includes('new') ||
+                           title.toLowerCase().includes('announce');
+          
+          newsItems.push({
+            title: title.substring(0, 200),
+            description: `Latest update from NERC regarding ${title.substring(0, 100)}...`,
+            type: isAlert ? 'alert' : isUpdate ? 'update' : 'info',
+            region: null,
+            published_at: publishedAt,
+          });
         }
       }
     }
 
-    // Create news items from titles
-    for (const title of titles) {
-      const isAlert = title.toLowerCase().includes('warning') || 
-                      title.toLowerCase().includes('urgent') ||
-                      title.toLowerCase().includes('notice');
-      const isUpdate = title.toLowerCase().includes('update') ||
-                       title.toLowerCase().includes('new') ||
-                       title.toLowerCase().includes('announce');
+    // Fallback: try to find titles without article wrapper
+    if (newsItems.length === 0) {
+      const titlePattern = /<h[2-4][^>]*class="[^"]*(?:entry-title|post-title|title)[^"]*"[^>]*>[\s\S]*?<a[^>]*href="[^"]*"[^>]*>([^<]+)<\/a>/gi;
+      let match;
       
-      newsItems.push({
-        title: title.substring(0, 200),
-        description: `Latest update from NERC regarding ${title.substring(0, 100)}...`,
-        type: isAlert ? 'alert' : isUpdate ? 'update' : 'info',
-        region: null,
-      });
+      while ((match = titlePattern.exec(html)) !== null && newsItems.length < 10) {
+        const title = match[1].trim().replace(/\s+/g, ' ');
+        if (title && title.length > 10 && !newsItems.some(item => item.title === title)) {
+          const isAlert = title.toLowerCase().includes('warning') || 
+                          title.toLowerCase().includes('urgent') ||
+                          title.toLowerCase().includes('notice');
+          const isUpdate = title.toLowerCase().includes('update') ||
+                           title.toLowerCase().includes('new') ||
+                           title.toLowerCase().includes('announce');
+          
+          newsItems.push({
+            title: title.substring(0, 200),
+            description: `Latest update from NERC regarding ${title.substring(0, 100)}...`,
+            type: isAlert ? 'alert' : isUpdate ? 'update' : 'info',
+            region: null,
+            published_at: null,
+          });
+        }
+      }
     }
 
-    // If still no news found, add placeholder news
+    // If still no news found, add placeholder
     if (newsItems.length === 0) {
       console.log("No news items found in HTML, adding placeholder");
       newsItems.push({
@@ -87,6 +124,7 @@ Deno.serve(async (req) => {
         description: "Check nerc.gov.ng for the latest regulatory updates and announcements.",
         type: "info",
         region: null,
+        published_at: null,
       });
     }
 

@@ -34,50 +34,72 @@ Deno.serve(async (req) => {
     let loadPercent: number | null = null;
     let status: string = "stable";
 
-    // Pattern for peak generation: look for PEAK GENERATION section with MW value
-    // HTML structure: PEAK GENERATION ... <span class="bold my-0 size24">4,919.90</span><span class="size15">MW</span>
-    const peakGenSection = html.match(/PEAK GENERATION[\s\S]*?<span[^>]*>([0-9,]+\.?\d*)<\/span><span[^>]*>MW<\/span>/i);
-    if (peakGenSection) {
-      generationMw = parseFloat(peakGenSection[1].replace(/,/g, ''));
-      console.log("Found peak generation:", generationMw);
+    // Look for the "Grid @" card which has current data
+    // Pattern: "Grid @ 06:00 Hrs for 08/01/2026 Generation: 4,876.45MW Frequency: 50.18Hz | 2.45 % (119.30)"
+    const gridCardPattern = /Grid\s*@[\s\S]*?Generation:?\s*([0-9,]+\.?\d*)\s*MW[\s\S]*?Frequency:?\s*([0-9]+\.?\d*)\s*Hz/i;
+    const gridCardMatch = html.match(gridCardPattern);
+    
+    if (gridCardMatch) {
+      generationMw = parseFloat(gridCardMatch[1].replace(/,/g, ''));
+      frequency = parseFloat(gridCardMatch[2]);
+      console.log("Found grid card data - Generation:", generationMw, "Frequency:", frequency);
     }
 
-    // Alternative: look for bold size24 followed by MW
-    if (!generationMw) {
-      const boldMwMatch = html.match(/<span[^>]*class="bold[^"]*size24"[^>]*>([0-9,]+\.?\d*)<\/span><span[^>]*>MW<\/span>/i);
-      if (boldMwMatch) {
-        generationMw = parseFloat(boldMwMatch[1].replace(/,/g, ''));
-        console.log("Found generation (bold):", generationMw);
+    // Alternative pattern for the grid section with colons
+    if (!generationMw || !frequency) {
+      const altGridPattern = /Generation\s*:\s*<\/span>\s*([0-9,]+\.?\d*)\s*MW[\s\S]*?Frequency\s*:\s*<\/span>\s*([0-9]+\.?\d*)\s*Hz/i;
+      const altMatch = html.match(altGridPattern);
+      if (altMatch) {
+        generationMw = parseFloat(altMatch[1].replace(/,/g, ''));
+        frequency = parseFloat(altMatch[2]);
+        console.log("Found grid data (alt) - Generation:", generationMw, "Frequency:", frequency);
       }
     }
 
-    // Find frequency from the Grid @ section: "Frequency: 50.23Hz"
-    const gridFreqMatch = html.match(/Frequency:?\s*<\/span>\s*([0-9]+\.?\d*)Hz/i);
-    if (gridFreqMatch) {
-      frequency = parseFloat(gridFreqMatch[1]);
-      console.log("Found frequency (grid section):", frequency);
+    // Try to find generation from any MW value near "Generation"
+    if (!generationMw) {
+      const genMatch = html.match(/Generation[:\s]*([0-9,]+\.?\d*)\s*MW/i);
+      if (genMatch) {
+        generationMw = parseFloat(genMatch[1].replace(/,/g, ''));
+        console.log("Found generation (simple):", generationMw);
+      }
     }
 
-    // Alternative frequency pattern: look for Hz values
+    // Try to find frequency from any Hz value
     if (!frequency) {
-      const freqMatch = html.match(/Freq\.?:?\s*<strong>([0-9]+\.?\d*)<\/strong>Hz/i);
+      const freqMatch = html.match(/Frequency[:\s]*([0-9]+\.?\d*)\s*Hz/i);
       if (freqMatch) {
         frequency = parseFloat(freqMatch[1]);
-        console.log("Found frequency (alt):", frequency);
+        console.log("Found frequency (simple):", frequency);
       }
     }
 
-    // Fallback frequency pattern
+    // Fallback: find any MW value that looks like generation (usually 4000-6000 range)
+    if (!generationMw) {
+      const mwMatches = html.match(/([0-9,]+\.?\d*)\s*MW/gi);
+      if (mwMatches) {
+        for (const match of mwMatches) {
+          const value = parseFloat(match.replace(/,/g, '').replace(/MW/i, ''));
+          if (value > 2000 && value < 10000) {
+            generationMw = value;
+            console.log("Found generation (fallback):", generationMw);
+            break;
+          }
+        }
+      }
+    }
+
+    // Fallback: find Hz value
     if (!frequency) {
-      const hzMatch = html.match(/([0-9]+\.[0-9]+)Hz/i);
+      const hzMatch = html.match(/([0-9]+\.[0-9]+)\s*Hz/i);
       if (hzMatch) {
         frequency = parseFloat(hzMatch[1]);
         console.log("Found frequency (fallback):", frequency);
       }
     }
 
-    // Extract percentage trend from peak generation section
-    const trendMatch = html.match(/PEAK GENERATION[\s\S]*?([\-\+]?\d+\.?\d*)\s*%/i);
+    // Extract percentage trend from grid card: "| 2.45 % (119.30)"
+    const trendMatch = html.match(/\|\s*([\-\+]?\d+\.?\d*)\s*%/i);
     if (trendMatch) {
       loadPercent = parseFloat(trendMatch[1]);
       console.log("Found trend percentage:", loadPercent);
