@@ -8,6 +8,7 @@ export interface GridNewsItem {
   type: "alert" | "info" | "update" | null;
   region: string | null;
   created_at: string;
+  published_at: string | null;
 }
 
 const NEWS_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes

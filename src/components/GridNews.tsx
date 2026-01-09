@@ -4,7 +4,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Newspaper, AlertTriangle, Info, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GridNewsItem } from "@/hooks/useGridNews";
-import { formatDistanceToNow } from "date-fns";
 
 interface GridNewsProps {
   news?: GridNewsItem[];
@@ -14,11 +13,19 @@ interface GridNewsProps {
 export function GridNews({ news = [], loading = false }: GridNewsProps) {
   const hasNews = news.length > 0;
 
-  const formatTimestamp = (dateString: string) => {
+  const formatPublishedDate = (publishedAt: string | null, createdAt: string) => {
     try {
-      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+      // Use published_at if available, otherwise fall back to created_at
+      const dateToUse = publishedAt || createdAt;
+      const date = new Date(dateToUse);
+      // Format as "Jan 8, 2025"
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
     } catch {
-      return "Just now";
+      return "Recently";
     }
   };
 
@@ -100,7 +107,7 @@ export function GridNews({ news = [], loading = false }: GridNewsProps) {
                           {item.description}
                         </p>
                         <span className="text-[10px] text-muted-foreground mt-1.5 block">
-                          {formatTimestamp(item.created_at)}
+                          {formatPublishedDate(item.published_at, item.created_at)}
                         </span>
                       </div>
                     </div>
