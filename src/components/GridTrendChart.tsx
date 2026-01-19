@@ -90,7 +90,7 @@ export function GridTrendChart() {
     <Card className="animate-fade-in" style={{ animationDelay: "400ms" }}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle className="flex items-center gap-2 text-base text-foreground">
             <TrendingUp className="w-4 h-4 text-primary" />
             Grid Trend
           </CardTitle>
@@ -116,38 +116,31 @@ export function GridTrendChart() {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <LineChart data={chartData} margin={{ top: 10, right: 50, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
               <XAxis 
                 dataKey="time" 
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                 tickLine={false}
                 axisLine={{ stroke: "hsl(var(--border))" }}
+                interval={timeRange === "daily" ? 3 : timeRange === "monthly" ? 4 : 0}
               />
               <YAxis 
                 yAxisId="left"
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                 tickLine={false}
                 axisLine={{ stroke: "hsl(var(--border))" }}
-                label={{ 
-                  value: "MW", 
-                  angle: -90, 
-                  position: "insideLeft",
-                  style: { fontSize: 11, fill: "hsl(var(--muted-foreground))" }
-                }}
+                tickFormatter={(value) => `${(value / 1000).toFixed(1)}k`}
+                width={40}
               />
               <YAxis 
                 yAxisId="right"
                 orientation="right"
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                 tickLine={false}
                 axisLine={{ stroke: "hsl(var(--border))" }}
-                label={{ 
-                  value: "Load %", 
-                  angle: 90, 
-                  position: "insideRight",
-                  style: { fontSize: 11, fill: "hsl(var(--muted-foreground))" }
-                }}
+                tickFormatter={(value) => `${value}%`}
+                width={45}
               />
               <Tooltip 
                 contentStyle={{ 
