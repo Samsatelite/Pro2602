@@ -4,7 +4,7 @@ import { GridStatusCard } from "@/components/GridStatusCard";
 import { GridHealthIndicator } from "@/components/GridHealthIndicator";
 import { NigeriaMap } from "@/components/NigeriaMap";
 import { RecentReports } from "@/components/RecentReports";
-import { GridNews } from "@/components/GridNews";
+
 import { GridTrendChart } from "@/components/GridTrendChart";
 import { Zap, Activity, Gauge, BarChart3, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const Index = () => {
   const { gridData, loading: gridLoading, refetch: refetchGrid } = useGridData();
   const { reports, loading: reportsLoading } = usePowerReports();
-  const { news, loading: newsLoading, fetchFromNERC } = useGridNews();
+  
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const refreshData = useCallback(async () => {
@@ -129,11 +129,8 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Bottom Grid - Chart and News */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          <GridTrendChart />
-          <GridNews news={news} loading={newsLoading} />
-        </div>
+        {/* Chart Section */}
+        <GridTrendChart />
 
         {/* Footer */}
         <footer className="border-t border-border pt-6 mt-8">

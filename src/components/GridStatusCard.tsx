@@ -24,13 +24,13 @@ export function GridStatusCard({
   delay = 0,
 }: GridStatusCardProps) {
   const statusVariant = {
-    stable: "glow" as const,
+    stable: "default" as const,
     stressed: "warning" as const,
     critical: "critical" as const,
   };
 
-  const statusColor = {
-    stable: "text-success",
+  const statusIconColor = {
+    stable: "text-primary",
     stressed: "text-warning",
     critical: "text-critical",
   };
@@ -51,7 +51,7 @@ export function GridStatusCard({
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <div className={cn("p-2 rounded-lg bg-secondary/50", hasValue ? statusColor[status] : "text-muted-foreground")}>
+        <div className={cn("p-2 rounded-lg bg-secondary/50", hasValue ? statusIconColor[status] : "text-muted-foreground")}>
           <Icon className="h-4 w-4" />
         </div>
       </CardHeader>
@@ -59,12 +59,18 @@ export function GridStatusCard({
       <CardContent>
         {hasValue ? (
           <>
-            <div className="flex items-baseline gap-2">
-              <span className={cn("stat-value", statusColor[status])}>
+            <div className="flex items-baseline gap-1 min-w-0">
+              <span className={cn(
+                "font-mono font-bold tracking-tight text-foreground truncate",
+                // Responsive text sizing based on value length
+                String(value).length > 6 ? "text-xl sm:text-2xl md:text-3xl" : 
+                String(value).length > 4 ? "text-2xl sm:text-3xl md:text-4xl" : 
+                "text-3xl sm:text-4xl"
+              )}>
                 {value}
               </span>
               {unit && (
-                <span className="text-lg text-muted-foreground font-mono">
+                <span className="text-sm sm:text-base md:text-lg text-muted-foreground font-mono flex-shrink-0">
                   {unit}
                 </span>
               )}
