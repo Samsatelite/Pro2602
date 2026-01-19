@@ -119,28 +119,6 @@ const Index = () => {
         {/* Chart Section */}
         <GridTrendChart />
 
-        {/* Footer */}
-        <footer className="border-t border-border pt-6 mt-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <p>
-              {reports.length > 0 
-                ? `${reports.length} community reports • Data from power.gov.ng`
-                : "Waiting for data from power.gov.ng and community reports"
-              }
-            </p>
-            <div className="flex items-center gap-4">
-              <a href="#" className="hover:text-foreground transition-colors">
-                About
-              </a>
-              <a href="#" className="hover:text-foreground transition-colors">
-                API
-              </a>
-              <a href="#" className="hover:text-foreground transition-colors">
-                Privacy
-              </a>
-            </div>
-          </div>
-        </footer>
       </main>
     </div>
   );
