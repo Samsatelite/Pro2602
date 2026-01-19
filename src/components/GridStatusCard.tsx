@@ -59,18 +59,12 @@ export function GridStatusCard({
       <CardContent>
         {hasValue ? (
           <>
-            <div className="flex items-baseline gap-1 min-w-0">
-              <span className={cn(
-                "font-mono font-bold tracking-tight text-foreground truncate",
-                // Responsive text sizing based on value length
-                String(value).length > 6 ? "text-xl sm:text-2xl md:text-3xl" : 
-                String(value).length > 4 ? "text-2xl sm:text-3xl md:text-4xl" : 
-                "text-3xl sm:text-4xl"
-              )}>
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="font-mono font-bold tracking-tight text-foreground text-2xl sm:text-3xl">
                 {value}
               </span>
               {unit && (
-                <span className="text-sm sm:text-base md:text-lg text-muted-foreground font-mono flex-shrink-0">
+              <span className="text-base sm:text-lg text-muted-foreground font-mono flex-shrink-0">
                   {unit}
                 </span>
               )}

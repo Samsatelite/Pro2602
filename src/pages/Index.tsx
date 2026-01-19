@@ -1,17 +1,14 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { GridStatusCard } from "@/components/GridStatusCard";
 import { GridHealthIndicator } from "@/components/GridHealthIndicator";
-import { NigeriaMap } from "@/components/NigeriaMap";
 import { RecentReports } from "@/components/RecentReports";
-
 import { GridTrendChart } from "@/components/GridTrendChart";
 import { Zap, Activity, Gauge, BarChart3, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useGridData } from "@/hooks/useGridData";
 import { usePowerReports } from "@/hooks/usePowerReports";
-import { useGridNews } from "@/hooks/useGridNews";
 import { supabase } from "@/integrations/supabase/client";
 
 const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -116,18 +113,8 @@ const Index = () => {
           />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left Column - Map */}
-          <div className="lg:col-span-2">
-            <NigeriaMap reports={reports} />
-          </div>
-
-          {/* Right Column */}
-          <div className="space-y-6">
-            <RecentReports reports={reports} loading={reportsLoading} />
-          </div>
-        </div>
+        {/* Recent Reports */}
+        <RecentReports reports={reports} loading={reportsLoading} />
 
         {/* Chart Section */}
         <GridTrendChart />
