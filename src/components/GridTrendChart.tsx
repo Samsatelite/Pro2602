@@ -10,8 +10,7 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer,
-  Legend
+  ResponsiveContainer
 } from "recharts";
 import { format, subDays, subWeeks, subMonths } from "date-fns";
 
@@ -27,7 +26,6 @@ interface GridDataPoint {
 interface ChartDataPoint {
   time: string;
   generation: number;
-  load: number;
 }
 
 export function GridTrendChart() {
@@ -116,31 +114,27 @@ export function GridTrendChart() {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={chartData} margin={{ top: 10, right: 50, left: 10, bottom: 0 }}>
+            <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
               <XAxis 
                 dataKey="time" 
-                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                 tickLine={false}
                 axisLine={{ stroke: "hsl(var(--border))" }}
-                interval={timeRange === "daily" ? 3 : timeRange === "monthly" ? 4 : 0}
+                interval={timeRange === "daily" ? 3 : 0}
               />
               <YAxis 
-                yAxisId="left"
-                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                 tickLine={false}
                 axisLine={{ stroke: "hsl(var(--border))" }}
                 tickFormatter={(value) => `${(value / 1000).toFixed(1)}k`}
-                width={40}
-              />
-              <YAxis 
-                yAxisId="right"
-                orientation="right"
-                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                tickLine={false}
-                axisLine={{ stroke: "hsl(var(--border))" }}
-                tickFormatter={(value) => `${value}%`}
                 width={45}
+                label={{ 
+                  value: "MW", 
+                  angle: -90, 
+                  position: "insideLeft",
+                  style: { fontSize: 11, fill: "hsl(var(--muted-foreground))" }
+                }}
               />
               <Tooltip 
                 contentStyle={{ 
@@ -150,12 +144,9 @@ export function GridTrendChart() {
                   fontSize: "12px"
                 }}
                 labelStyle={{ color: "hsl(var(--foreground))" }}
-              />
-              <Legend 
-                wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
+                formatter={(value: number) => [`${value.toLocaleString()} MW`, "Generation"]}
               />
               <Line
-                yAxisId="left"
                 type="monotone"
                 dataKey="generation"
                 name="Generation (MW)"
@@ -163,16 +154,6 @@ export function GridTrendChart() {
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4, fill: "hsl(var(--chart-1))" }}
-              />
-              <Line
-                yAxisId="right"
-                type="monotone"
-                dataKey="load"
-                name="Load (%)"
-                stroke="hsl(var(--chart-2))"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, fill: "hsl(var(--chart-2))" }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -192,28 +173,26 @@ function formatDataForTimeRange(data: GridDataPoint[], timeRange: TimeRange): Ch
         hourlyMap.set(hour, {
           time: hour,
           generation: point.generation_mw ?? 0,
-          load: point.load_percent ?? 0,
         });
       });
       // Ensure all 24 hours are represented
       const result: ChartDataPoint[] = [];
       for (let i = 0; i < 24; i++) {
         const hour = `${i.toString().padStart(2, "0")}:00`;
-        result.push(hourlyMap.get(hour) || { time: hour, generation: 0, load: 0 });
+        result.push(hourlyMap.get(hour) || { time: hour, generation: 0 });
       }
       return result;
     }
     case "weekly": {
       const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-      const dayMap = new Map<string, { generation: number[]; load: number[] }>();
-      days.forEach(day => dayMap.set(day, { generation: [], load: [] }));
+      const dayMap = new Map<string, number[]>();
+      days.forEach(day => dayMap.set(day, []));
       
       data.forEach((point) => {
         const day = format(new Date(point.created_at), "EEE");
         const existing = dayMap.get(day);
-        if (existing) {
-          if (point.generation_mw) existing.generation.push(point.generation_mw);
-          if (point.load_percent) existing.load.push(point.load_percent);
+        if (existing && point.generation_mw) {
+          existing.push(point.generation_mw);
         }
       });
       
@@ -221,37 +200,34 @@ function formatDataForTimeRange(data: GridDataPoint[], timeRange: TimeRange): Ch
         const values = dayMap.get(day)!;
         return {
           time: day,
-          generation: values.generation.length > 0 
-            ? Math.round(values.generation.reduce((a, b) => a + b, 0) / values.generation.length)
-            : 0,
-          load: values.load.length > 0
-            ? Math.round(values.load.reduce((a, b) => a + b, 0) / values.load.length)
+          generation: values.length > 0 
+            ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
             : 0,
         };
       });
     }
     case "monthly": {
-      const dayMap = new Map<string, { generation: number[]; load: number[] }>();
+      // Group by week number
+      const weekMap = new Map<string, number[]>();
       
       data.forEach((point) => {
-        const day = format(new Date(point.created_at), "dd");
-        if (!dayMap.has(day)) {
-          dayMap.set(day, { generation: [], load: [] });
+        const weekNum = format(new Date(point.created_at), "'W'w");
+        if (!weekMap.has(weekNum)) {
+          weekMap.set(weekNum, []);
         }
-        const existing = dayMap.get(day)!;
-        if (point.generation_mw) existing.generation.push(point.generation_mw);
-        if (point.load_percent) existing.load.push(point.load_percent);
+        if (point.generation_mw) {
+          weekMap.get(weekNum)!.push(point.generation_mw);
+        }
       });
       
-      return Array.from(dayMap.entries()).map(([day, values]) => ({
-        time: day,
-        generation: values.generation.length > 0 
-          ? Math.round(values.generation.reduce((a, b) => a + b, 0) / values.generation.length)
-          : 0,
-        load: values.load.length > 0
-          ? Math.round(values.load.reduce((a, b) => a + b, 0) / values.load.length)
-          : 0,
-      }));
+      return Array.from(weekMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([week, values]) => ({
+          time: week,
+          generation: values.length > 0 
+            ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
+            : 0,
+        }));
     }
     default:
       return [];
@@ -264,20 +240,17 @@ function generatePlaceholderData(timeRange: TimeRange): ChartDataPoint[] {
       return Array.from({ length: 24 }, (_, i) => ({
         time: `${i.toString().padStart(2, "0")}:00`,
         generation: Math.floor(Math.random() * 2000) + 3000,
-        load: Math.floor(Math.random() * 30) + 60,
       }));
     case "weekly":
       const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
       return days.map((day) => ({
         time: day,
         generation: Math.floor(Math.random() * 2000) + 3000,
-        load: Math.floor(Math.random() * 30) + 60,
       }));
     case "monthly":
-      return Array.from({ length: 30 }, (_, i) => ({
-        time: (i + 1).toString().padStart(2, "0"),
+      return Array.from({ length: 4 }, (_, i) => ({
+        time: `W${i + 1}`,
         generation: Math.floor(Math.random() * 2000) + 3000,
-        load: Math.floor(Math.random() * 30) + 60,
       }));
     default:
       return [];
