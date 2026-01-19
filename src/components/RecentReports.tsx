@@ -1,10 +1,13 @@
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Zap, ZapOff, Clock, ThumbsUp, ThumbsDown, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Zap, ZapOff, Clock, ThumbsUp, ThumbsDown, FileText, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PowerReport } from "@/hooks/usePowerReports";
 import { formatDistanceToNow } from "date-fns";
+import { Button } from "@/components/ui/button";
 
 interface RecentReportsProps {
   reports?: PowerReport[];
@@ -12,7 +15,21 @@ interface RecentReportsProps {
 }
 
 export function RecentReports({ reports = [], loading = false }: RecentReportsProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  const filteredReports = useMemo(() => {
+    if (!searchQuery.trim()) return reports;
+    
+    const query = searchQuery.toLowerCase();
+    return reports.filter((report) => {
+      const region = (report.region || "").toLowerCase();
+      const address = (report.address || "").toLowerCase();
+      return region.includes(query) || address.includes(query);
+    });
+  }, [reports, searchQuery]);
+
   const hasReports = reports.length > 0;
+  const hasFilteredReports = filteredReports.length > 0;
 
   const formatTimestamp = (dateString: string) => {
     try {
@@ -20,6 +37,10 @@ export function RecentReports({ reports = [], loading = false }: RecentReportsPr
     } catch {
       return "Just now";
     }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
   };
 
   return (
@@ -34,6 +55,29 @@ export function RecentReports({ reports = [], loading = false }: RecentReportsPr
             {hasReports ? "Live Feed" : "Waiting"}
           </Badge>
         </div>
+        
+        {/* Search Input */}
+        {hasReports && (
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-9 h-9 text-sm"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                onClick={handleClearSearch}
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="p-0">
         {loading ? (
@@ -41,57 +85,77 @@ export function RecentReports({ reports = [], loading = false }: RecentReportsPr
             <p className="text-sm">Loading reports...</p>
           </div>
         ) : hasReports ? (
-          <ScrollArea className="h-[360px] px-6 pb-6">
-            <div className="space-y-3">
-              {reports.map((report, index) => (
-                <div
-                  key={report.id}
-                  className={cn(
-                    "p-3 rounded-lg border border-border bg-card transition-all duration-200 hover:bg-muted/50 animate-slide-in-right"
-                  )}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={cn(
-                          "mt-0.5 p-1.5 rounded-lg",
-                          report.status === "available" ? "bg-success/20" : "bg-critical/20"
-                        )}
-                      >
-                        {report.status === "available" ? (
-                          <Zap className="w-3.5 h-3.5 text-success" />
-                        ) : (
-                          <ZapOff className="w-3.5 h-3.5 text-critical" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{report.region || report.address || "Unknown Location"}</span>
+          hasFilteredReports ? (
+            <ScrollArea className="h-[360px] px-6 pb-6">
+              <div className="space-y-3">
+                {searchQuery && (
+                  <p className="text-xs text-muted-foreground">
+                    Found {filteredReports.length} report{filteredReports.length !== 1 ? 's' : ''} matching "{searchQuery}"
+                  </p>
+                )}
+                {filteredReports.map((report, index) => (
+                  <div
+                    key={report.id}
+                    className={cn(
+                      "p-3 rounded-lg border border-border bg-card transition-all duration-200 hover:bg-muted/50 animate-slide-in-right"
+                    )}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={cn(
+                            "mt-0.5 p-1.5 rounded-lg",
+                            report.status === "available" ? "bg-success/20" : "bg-critical/20"
+                          )}
+                        >
+                          {report.status === "available" ? (
+                            <Zap className="w-3.5 h-3.5 text-success" />
+                          ) : (
+                            <ZapOff className="w-3.5 h-3.5 text-critical" />
+                          )}
                         </div>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <span>Community Report</span>
-                          <span>•</span>
-                          <span>{formatTimestamp(report.created_at)}</span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">{report.region || report.address || "Unknown Location"}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                            <span>Community Report</span>
+                            <span>•</span>
+                            <span>{formatTimestamp(report.created_at)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="flex items-center gap-1 text-success">
-                        <ThumbsUp className="w-3 h-3" />
-                        {report.upvotes}
-                      </span>
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <ThumbsDown className="w-3 h-3" />
-                        {report.downvotes}
-                      </span>
+                      
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="flex items-center gap-1 text-success">
+                          <ThumbsUp className="w-3 h-3" />
+                          {report.upvotes}
+                        </span>
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <ThumbsDown className="w-3 h-3" />
+                          {report.downvotes}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </ScrollArea>
+          ) : (
+            <div className="h-[360px] flex flex-col items-center justify-center text-muted-foreground px-6">
+              <Search className="w-12 h-12 mb-3 opacity-30" />
+              <p className="text-sm text-center">No reports found for "{searchQuery}"</p>
+              <Button 
+                variant="link" 
+                size="sm" 
+                onClick={handleClearSearch}
+                className="mt-2 text-xs"
+              >
+                Clear search
+              </Button>
             </div>
-          </ScrollArea>
+          )
         ) : (
           <div className="h-[360px] flex flex-col items-center justify-center text-muted-foreground px-6">
             <FileText className="w-12 h-12 mb-3 opacity-30" />
