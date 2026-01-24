@@ -4,9 +4,7 @@ import { GridStatusCard } from "@/components/GridStatusCard";
 import { GridHealthIndicator } from "@/components/GridHealthIndicator";
 import { RecentReports } from "@/components/RecentReports";
 import { GridTrendChart } from "@/components/GridTrendChart";
-import { Zap, Activity, Gauge, BarChart3, Share2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { Zap, Activity, Gauge, BarChart3 } from "lucide-react";
 import { useGridData } from "@/hooks/useGridData";
 import { usePowerReports } from "@/hooks/usePowerReports";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,11 +45,6 @@ const Index = () => {
     };
   }, [refreshData]);
 
-  const handleShare = () => {
-    toast.success("Sharing options coming soon!", {
-      description: "Share grid status on WhatsApp, Twitter, and more",
-    });
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,19 +52,10 @@ const Index = () => {
 
       <main className="relative container px-4 md:px-6 py-6 space-y-6">
         {/* Page Title */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Grid Dashboard
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Real-time national grid status and community power reports
-            </p>
-          </div>
-          <Button variant="outline" onClick={handleShare} className="sm:w-auto">
-            <Share2 className="w-4 h-4 mr-2" />
-            Share
-          </Button>
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            Grid in real-time
+          </h1>
         </div>
         <GridHealthIndicator 
           status={gridData.status} 
@@ -113,11 +97,11 @@ const Index = () => {
           />
         </div>
 
-        {/* Recent Reports */}
-        <RecentReports reports={reports} loading={reportsLoading} />
-
         {/* Chart Section */}
         <GridTrendChart />
+
+        {/* Community Reports */}
+        <RecentReports reports={reports} loading={reportsLoading} />
 
       </main>
     </div>

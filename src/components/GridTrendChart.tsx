@@ -168,18 +168,35 @@ function formatDataForTimeRange(data: GridDataPoint[], timeRange: TimeRange): Ch
     case "daily": {
       // Group by hour and take latest value for each hour
       const hourlyMap = new Map<string, ChartDataPoint>();
+      let lastKnownGeneration = 0;
+      
       data.forEach((point) => {
         const hour = format(new Date(point.created_at), "HH:00");
+        const generation = point.generation_mw ?? 0;
+        if (generation > 0) {
+          lastKnownGeneration = generation;
+        }
         hourlyMap.set(hour, {
           time: hour,
-          generation: point.generation_mw ?? 0,
+          generation: generation > 0 ? generation : lastKnownGeneration,
         });
       });
-      // Ensure all 24 hours are represented
+      
+      // Build result with carry-forward for missing hours
       const result: ChartDataPoint[] = [];
+      let carryForwardValue = 0;
+      
       for (let i = 0; i < 24; i++) {
         const hour = `${i.toString().padStart(2, "0")}:00`;
-        result.push(hourlyMap.get(hour) || { time: hour, generation: 0 });
+        const existing = hourlyMap.get(hour);
+        if (existing && existing.generation > 0) {
+          carryForwardValue = existing.generation;
+          result.push(existing);
+        } else if (carryForwardValue > 0) {
+          result.push({ time: hour, generation: carryForwardValue });
+        } else {
+          result.push({ time: hour, generation: 0 });
+        }
       }
       return result;
     }
