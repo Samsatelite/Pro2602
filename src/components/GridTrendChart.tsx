@@ -108,88 +108,88 @@ export function GridTrendChart() {
           </Tabs>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2 sm:px-4">
         {loading ? (
           <div className="h-[280px] flex items-center justify-center text-muted-foreground">
             Loading chart data...
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-              <XAxis 
-                dataKey="time" 
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                tickLine={false}
-                axisLine={{ stroke: "hsl(var(--border))" }}
-                interval={timeRange === "daily" ? 3 : 0}
-              />
-              <YAxis 
-                yAxisId="left"
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                tickLine={false}
-                axisLine={{ stroke: "hsl(var(--border))" }}
-                tickFormatter={(value) => `${(value / 1000).toFixed(1)}k`}
-                width={45}
-                label={{ 
-                  value: "MW", 
-                  angle: -90, 
-                  position: "insideLeft",
-                  style: { fontSize: 11, fill: "hsl(var(--muted-foreground))" }
-                }}
-              />
-              <YAxis 
-                yAxisId="right"
-                orientation="right"
-                tick={{ fontSize: 11, fill: "hsl(45, 93%, 47%)" }}
-                tickLine={false}
-                axisLine={{ stroke: "hsl(45, 93%, 47%)" }}
-                domain={[48, 52]}
-                width={45}
-                label={{ 
-                  value: "Hz", 
-                  angle: 90, 
-                  position: "insideRight",
-                  style: { fontSize: 11, fill: "hsl(45, 93%, 47%)" }
-                }}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  fontSize: "12px"
-                }}
-                labelStyle={{ color: "hsl(var(--foreground))" }}
-                formatter={(value: number, name: string) => {
-                  if (name === "Generation (MW)") {
-                    return [`${value.toLocaleString()} MW`, "Generation"];
-                  }
-                  return [`${value.toFixed(2)} Hz`, "Frequency"];
-                }}
-              />
-              <Line
-                yAxisId="left"
-                type="monotone"
-                dataKey="generation"
-                name="Generation (MW)"
-                stroke="hsl(var(--chart-1))"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, fill: "hsl(var(--chart-1))" }}
-              />
-              <Line
-                yAxisId="right"
-                type="monotone"
-                dataKey="frequency"
-                name="Frequency (Hz)"
-                stroke="hsl(45, 93%, 47%)"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, fill: "hsl(45, 93%, 47%)" }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis 
+                  dataKey="time" 
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  tickLine={false}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
+                  interval={timeRange === "daily" ? 3 : 0}
+                />
+                <YAxis 
+                  yAxisId="left"
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `${(value / 1000).toFixed(1)}k`}
+                  width={35}
+                />
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fontSize: 11, fill: "hsl(45, 93%, 47%)" }}
+                  tickLine={false}
+                  axisLine={false}
+                  domain={[48, 52]}
+                  width={30}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                    fontSize: "12px"
+                  }}
+                  labelStyle={{ color: "hsl(var(--foreground))" }}
+                  formatter={(value: number, name: string) => {
+                    if (name === "Generation (MW)") {
+                      return [`${value.toLocaleString()} MW`, "Generation"];
+                    }
+                    return [`${value.toFixed(2)} Hz`, "Frequency"];
+                  }}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="generation"
+                  name="Generation (MW)"
+                  stroke="hsl(var(--chart-1))"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: "hsl(var(--chart-1))" }}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="frequency"
+                  name="Frequency (Hz)"
+                  stroke="hsl(45, 93%, 47%)"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: "hsl(45, 93%, 47%)" }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+            <div className="flex items-center justify-center gap-6 mt-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-0.5 rounded-full bg-[hsl(var(--chart-1))]" />
+                <span>Grid Power (MW)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-0.5 rounded-full bg-[hsl(45,93%,47%)]" />
+                <span>Grid Frequency (Hz)</span>
+              </div>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
