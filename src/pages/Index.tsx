@@ -54,18 +54,19 @@ const Index = () => {
         {/* Page Title */}
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            Grid in real-time
+            National grid in real-time
           </h1>
         </div>
         <GridHealthIndicator 
           status={gridData.status} 
+          generation={gridData.generation}
           lastUpdated={gridData.lastUpdated} 
         />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <GridStatusCard
-            title="Generation"
+            title="Grid power"
             value={gridData.generation}
             unit="MW"
             icon={Zap}
