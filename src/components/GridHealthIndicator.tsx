@@ -3,12 +3,17 @@ import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, XCircle, CheckCircle, HelpCircle } from "lucide-react";
 
 interface GridHealthIndicatorProps {
-  status?: "stable" | "stressed" | "critical" | null;
+  status?: "stable" | "stressed" | "critical" | "collapse" | null;
+  generation?: number | null;
   lastUpdated?: string | null;
 }
 
-export function GridHealthIndicator({ status, lastUpdated }: GridHealthIndicatorProps) {
-  const hasStatus = status !== undefined && status !== null;
+export function GridHealthIndicator({ status, generation, lastUpdated }: GridHealthIndicatorProps) {
+  // Determine if grid has collapsed (generation is 0 or null when we have data)
+  const isCollapse = generation !== undefined && generation !== null && generation === 0;
+  
+  const effectiveStatus = isCollapse ? "collapse" : status;
+  const hasStatus = effectiveStatus !== undefined && effectiveStatus !== null;
 
   const statusConfig = {
     stable: {
@@ -38,6 +43,15 @@ export function GridHealthIndicator({ status, lastUpdated }: GridHealthIndicator
       borderColor: "border-critical/30",
       pulseColor: "bg-critical",
     },
+    collapse: {
+      label: "Grid Collapse",
+      description: "National grid has collapsed, total system failure",
+      icon: XCircle,
+      color: "text-critical",
+      bgColor: "bg-critical/10",
+      borderColor: "border-critical/30",
+      pulseColor: "bg-critical",
+    },
     unknown: {
       label: "Status Unknown",
       description: "Waiting for grid data...",
@@ -49,7 +63,7 @@ export function GridHealthIndicator({ status, lastUpdated }: GridHealthIndicator
     },
   };
 
-  const config = hasStatus ? statusConfig[status] : statusConfig.unknown;
+  const config = hasStatus ? statusConfig[effectiveStatus] : statusConfig.unknown;
   const Icon = config.icon;
 
   return (
@@ -82,7 +96,7 @@ export function GridHealthIndicator({ status, lastUpdated }: GridHealthIndicator
         <div className="flex items-center gap-2">
           <h3 className={cn("font-semibold", config.color)}>{config.label}</h3>
           {hasStatus && (
-            <Badge variant={status === "stable" ? "stable" : status === "stressed" ? "warning" : "critical"}>
+            <Badge variant={effectiveStatus === "stable" ? "stable" : effectiveStatus === "stressed" ? "warning" : "critical"}>
               LIVE
             </Badge>
           )}
