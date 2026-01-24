@@ -26,6 +26,7 @@ interface GridDataPoint {
 interface ChartDataPoint {
   time: string;
   generation: number;
+  frequency: number;
 }
 
 export function GridTrendChart() {
@@ -114,7 +115,7 @@ export function GridTrendChart() {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+            <LineChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
               <XAxis 
                 dataKey="time" 
@@ -124,6 +125,7 @@ export function GridTrendChart() {
                 interval={timeRange === "daily" ? 3 : 0}
               />
               <YAxis 
+                yAxisId="left"
                 tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                 tickLine={false}
                 axisLine={{ stroke: "hsl(var(--border))" }}
@@ -136,6 +138,21 @@ export function GridTrendChart() {
                   style: { fontSize: 11, fill: "hsl(var(--muted-foreground))" }
                 }}
               />
+              <YAxis 
+                yAxisId="right"
+                orientation="right"
+                tick={{ fontSize: 11, fill: "hsl(45, 93%, 47%)" }}
+                tickLine={false}
+                axisLine={{ stroke: "hsl(45, 93%, 47%)" }}
+                domain={[48, 52]}
+                width={45}
+                label={{ 
+                  value: "Hz", 
+                  angle: 90, 
+                  position: "insideRight",
+                  style: { fontSize: 11, fill: "hsl(45, 93%, 47%)" }
+                }}
+              />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: "hsl(var(--card))",
@@ -144,9 +161,15 @@ export function GridTrendChart() {
                   fontSize: "12px"
                 }}
                 labelStyle={{ color: "hsl(var(--foreground))" }}
-                formatter={(value: number) => [`${value.toLocaleString()} MW`, "Generation"]}
+                formatter={(value: number, name: string) => {
+                  if (name === "Generation (MW)") {
+                    return [`${value.toLocaleString()} MW`, "Generation"];
+                  }
+                  return [`${value.toFixed(2)} Hz`, "Frequency"];
+                }}
               />
               <Line
+                yAxisId="left"
                 type="monotone"
                 dataKey="generation"
                 name="Generation (MW)"
@@ -154,6 +177,16 @@ export function GridTrendChart() {
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4, fill: "hsl(var(--chart-1))" }}
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="frequency"
+                name="Frequency (Hz)"
+                stroke="hsl(45, 93%, 47%)"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, fill: "hsl(45, 93%, 47%)" }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -167,84 +200,128 @@ function formatDataForTimeRange(data: GridDataPoint[], timeRange: TimeRange): Ch
   switch (timeRange) {
     case "daily": {
       // Group by hour and take latest value for each hour
-      const hourlyMap = new Map<string, ChartDataPoint>();
+      const hourlyMap = new Map<string, { generation: number; frequency: number }>();
       let lastKnownGeneration = 0;
+      let lastKnownFrequency = 50;
       
       data.forEach((point) => {
         const hour = format(new Date(point.created_at), "HH:00");
         const generation = point.generation_mw ?? 0;
+        const frequency = point.frequency ?? 0;
+        
         if (generation > 0) {
           lastKnownGeneration = generation;
         }
+        if (frequency > 0) {
+          lastKnownFrequency = frequency;
+        }
+        
         hourlyMap.set(hour, {
-          time: hour,
           generation: generation > 0 ? generation : lastKnownGeneration,
+          frequency: frequency > 0 ? frequency : lastKnownFrequency,
         });
       });
       
       // Build result with carry-forward for missing hours
       const result: ChartDataPoint[] = [];
-      let carryForwardValue = 0;
+      let carryForwardGeneration = 0;
+      let carryForwardFrequency = 50;
       
       for (let i = 0; i < 24; i++) {
         const hour = `${i.toString().padStart(2, "0")}:00`;
         const existing = hourlyMap.get(hour);
-        if (existing && existing.generation > 0) {
-          carryForwardValue = existing.generation;
-          result.push(existing);
-        } else if (carryForwardValue > 0) {
-          result.push({ time: hour, generation: carryForwardValue });
+        if (existing) {
+          if (existing.generation > 0) carryForwardGeneration = existing.generation;
+          if (existing.frequency > 0) carryForwardFrequency = existing.frequency;
+          result.push({ 
+            time: hour, 
+            generation: existing.generation > 0 ? existing.generation : carryForwardGeneration,
+            frequency: existing.frequency > 0 ? existing.frequency : carryForwardFrequency,
+          });
+        } else if (carryForwardGeneration > 0) {
+          result.push({ 
+            time: hour, 
+            generation: carryForwardGeneration,
+            frequency: carryForwardFrequency,
+          });
         } else {
-          result.push({ time: hour, generation: 0 });
+          result.push({ time: hour, generation: 0, frequency: 50 });
         }
       }
       return result;
     }
     case "weekly": {
       const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-      const dayMap = new Map<string, number[]>();
-      days.forEach(day => dayMap.set(day, []));
+      const dayMap = new Map<string, { generations: number[]; frequencies: number[] }>();
+      days.forEach(day => dayMap.set(day, { generations: [], frequencies: [] }));
       
       data.forEach((point) => {
         const day = format(new Date(point.created_at), "EEE");
         const existing = dayMap.get(day);
-        if (existing && point.generation_mw) {
-          existing.push(point.generation_mw);
+        if (existing) {
+          if (point.generation_mw) existing.generations.push(point.generation_mw);
+          if (point.frequency) existing.frequencies.push(point.frequency);
         }
       });
       
+      let lastGen = 0;
+      let lastFreq = 50;
+      
       return days.map(day => {
         const values = dayMap.get(day)!;
+        const avgGen = values.generations.length > 0 
+          ? Math.round(values.generations.reduce((a, b) => a + b, 0) / values.generations.length)
+          : lastGen;
+        const avgFreq = values.frequencies.length > 0 
+          ? values.frequencies.reduce((a, b) => a + b, 0) / values.frequencies.length
+          : lastFreq;
+        
+        if (avgGen > 0) lastGen = avgGen;
+        if (avgFreq > 0) lastFreq = avgFreq;
+        
         return {
           time: day,
-          generation: values.length > 0 
-            ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
-            : 0,
+          generation: avgGen,
+          frequency: avgFreq,
         };
       });
     }
     case "monthly": {
       // Group by week number
-      const weekMap = new Map<string, number[]>();
+      const weekMap = new Map<string, { generations: number[]; frequencies: number[] }>();
       
       data.forEach((point) => {
         const weekNum = format(new Date(point.created_at), "'W'w");
         if (!weekMap.has(weekNum)) {
-          weekMap.set(weekNum, []);
+          weekMap.set(weekNum, { generations: [], frequencies: [] });
         }
-        if (point.generation_mw) {
-          weekMap.get(weekNum)!.push(point.generation_mw);
-        }
+        const week = weekMap.get(weekNum)!;
+        if (point.generation_mw) week.generations.push(point.generation_mw);
+        if (point.frequency) week.frequencies.push(point.frequency);
       });
+      
+      let lastGen = 0;
+      let lastFreq = 50;
       
       return Array.from(weekMap.entries())
         .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([week, values]) => ({
-          time: week,
-          generation: values.length > 0 
-            ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
-            : 0,
-        }));
+        .map(([week, values]) => {
+          const avgGen = values.generations.length > 0 
+            ? Math.round(values.generations.reduce((a, b) => a + b, 0) / values.generations.length)
+            : lastGen;
+          const avgFreq = values.frequencies.length > 0 
+            ? values.frequencies.reduce((a, b) => a + b, 0) / values.frequencies.length
+            : lastFreq;
+          
+          if (avgGen > 0) lastGen = avgGen;
+          if (avgFreq > 0) lastFreq = avgFreq;
+          
+          return {
+            time: week,
+            generation: avgGen,
+            frequency: avgFreq,
+          };
+        });
     }
     default:
       return [];
@@ -257,17 +334,20 @@ function generatePlaceholderData(timeRange: TimeRange): ChartDataPoint[] {
       return Array.from({ length: 24 }, (_, i) => ({
         time: `${i.toString().padStart(2, "0")}:00`,
         generation: Math.floor(Math.random() * 2000) + 3000,
+        frequency: 49.5 + Math.random(),
       }));
     case "weekly":
       const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
       return days.map((day) => ({
         time: day,
         generation: Math.floor(Math.random() * 2000) + 3000,
+        frequency: 49.5 + Math.random(),
       }));
     case "monthly":
       return Array.from({ length: 4 }, (_, i) => ({
         time: `W${i + 1}`,
         generation: Math.floor(Math.random() * 2000) + 3000,
+        frequency: 49.5 + Math.random(),
       }));
     default:
       return [];
