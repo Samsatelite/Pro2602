@@ -8,6 +8,13 @@ import { cn } from "@/lib/utils";
 import { PowerReport } from "@/hooks/usePowerReports";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface RecentReportsProps {
   reports?: PowerReport[];
@@ -16,17 +23,26 @@ interface RecentReportsProps {
 
 export function RecentReports({ reports = [], loading = false }: RecentReportsProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "available" | "unavailable">("all");
   
   const filteredReports = useMemo(() => {
-    if (!searchQuery.trim()) return reports;
-    
-    const query = searchQuery.toLowerCase();
     return reports.filter((report) => {
-      const region = (report.region || "").toLowerCase();
-      const address = (report.address || "").toLowerCase();
-      return region.includes(query) || address.includes(query);
+      // Status filter
+      if (statusFilter !== "all" && report.status !== statusFilter) {
+        return false;
+      }
+      
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const region = (report.region || "").toLowerCase();
+        const address = (report.address || "").toLowerCase();
+        return region.includes(query) || address.includes(query);
+      }
+      
+      return true;
     });
-  }, [reports, searchQuery]);
+  }, [reports, searchQuery, statusFilter]);
 
   const hasReports = reports.length > 0;
   const hasFilteredReports = filteredReports.length > 0;
@@ -41,6 +57,7 @@ export function RecentReports({ reports = [], loading = false }: RecentReportsPr
 
   const handleClearSearch = () => {
     setSearchQuery("");
+    setStatusFilter("all");
   };
 
   return (
@@ -49,33 +66,45 @@ export function RecentReports({ reports = [], loading = false }: RecentReportsPr
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <Clock className="w-4 h-4 text-primary" />
-            Recent Reports
+            Community Report
           </CardTitle>
           <Badge variant="outline" className="text-xs">
             {hasReports ? "Live Feed" : "Waiting"}
           </Badge>
         </div>
         
-        {/* Search Input */}
+        {/* Search and Filter */}
         {hasReports && (
-          <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-9 h-9 text-sm"
-            />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                onClick={handleClearSearch}
-              >
-                <X className="w-3.5 h-3.5" />
-              </Button>
-            )}
+          <div className="flex flex-col sm:flex-row gap-2 mt-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by location..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9 h-9 text-sm"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                  onClick={() => setSearchQuery("")}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+              )}
+            </div>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "available" | "unavailable")}>
+              <SelectTrigger className="w-full sm:w-[140px] h-9 text-sm">
+                <SelectValue placeholder="Filter status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="unavailable">Unavailable</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         )}
       </CardHeader>
